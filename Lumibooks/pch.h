@@ -1,0 +1,14 @@
+#pragma once
+#define NOMINMAX
+#include <windows.h>
+#include <collection.h>
+#include <ppltasks.h>
+#include <algorithm>
+#include <string>
+#include <vector>
+#include <memory>
+#include <mutex>
+#include <cctype>
+#include <cstring>
+#include <cwctype>
+#include "App.xaml.h"

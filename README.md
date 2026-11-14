@@ -9,7 +9,9 @@ A light, native eBook reader for Windows 10 Mobile, written in C++/CX.
 
 ## Building
 
-Open `Lumibooks.sln` in Visual Studio 2019 with the C++ Universal Windows Platform tools (including the ARM tools). Select `ARM`, then deploy to a developer-unlocked device.
+Open `Lumibooks.sln` in Visual Studio 2019 with the C++ Universal Windows Platform tools (including the ARM tools). Select `ARM`, then deploy to a developer-unlocked device. Use `x86` to run on the desktop.
+
+The project targets SDK 10.0.19041.0 with 10.0.15063.0 as the minimum. To build a sideload package, create a test certificate under `Package.appxmanifest` > Packaging (the `.pfx` is git-ignored).
 
 ## Third-party
 
