@@ -27,5 +27,7 @@ namespace Lumibooks
         static concurrency::task<Book^> Import(Windows::Storage::StorageFile^ file);
         static void Remove(Book^ book);
         static concurrency::task<Windows::Storage::StorageFile^> GetFile(Platform::String^ relativePath);
+        static concurrency::task<Platform::String^> ReadText(Platform::String^ relativePath);
+        static void WriteText(Platform::String^ folder, Platform::String^ name, Platform::String^ text);
     };
 }

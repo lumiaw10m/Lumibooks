@@ -108,19 +108,44 @@ void Library::Save()
         o->Insert("progress", JsonValue::CreateNumberValue(b->ChapterProgress));
         arr->Append(o);
     }
-    String^ text = arr->Stringify();
-    auto local = ApplicationData::Current->LocalFolder;
-    s_chain = s_chain.then([local, text]
+    WriteText("", "library.json", arr->Stringify());
+}
+
+static task<void> WriteIn(StorageFolder^ dir, String^ name, String^ text)
+{
+    return create_task(dir->CreateFileAsync(name + ".tmp", CreationCollisionOption::ReplaceExisting)).then([name, text](StorageFile^ f)
     {
-        return create_task(local->CreateFileAsync("library.tmp", CreationCollisionOption::ReplaceExisting))
-            .then([text](StorageFile^ f)
+        return create_task(FileIO::WriteTextAsync(f, text)).then([f, name]
         {
-            return create_task(FileIO::WriteTextAsync(f, text)).then([f]
-            {
-                return f->RenameAsync("library.json", NameCollisionOption::ReplaceExisting);
-            });
+            return f->RenameAsync(name, NameCollisionOption::ReplaceExisting);
+        });
+    });
+}
+
+void Library::WriteText(String^ folder, String^ name, String^ text)
+{
+    Load();
+    auto local = ApplicationData::Current->LocalFolder;
+    s_chain = s_chain.then([local, folder, name, text]() -> task<void>
+    {
+        if (!folder || folder->IsEmpty()) return WriteIn(local, name, text);
+        return create_task(local->CreateFolderAsync(folder, CreationCollisionOption::OpenIfExists)).then([name, text](StorageFolder^ dir)
+        {
+            return WriteIn(dir, name, text);
         });
     }).then([](task<void> t) { Swallow(t); });
+}
+
+task<String^> Library::ReadText(String^ relativePath)
+{
+    return GetFile(relativePath).then([](StorageFile^ f)
+    {
+        return FileIO::ReadTextAsync(f);
+    }).then([](task<String^> t) -> String^
+    {
+        try { return t.get(); }
+        catch (Exception^) { return nullptr; }
+    });
 }
 
 static String^ NewId()
@@ -137,12 +162,13 @@ static String^ NewId()
 task<Book^> Library::Import(StorageFile^ file)
 {
     auto local = ApplicationData::Current->LocalFolder;
+    auto ui = task_continuation_context::use_current();
     String^ name = file->DisplayName;
     String^ id = NewId();
     return Load().then([file]
     {
         return FileIO::ReadBufferAsync(file);
-    }).then([=](IBuffer^ buf) -> task<Book^>
+    }, ui).then([=](IBuffer^ buf) -> task<Book^>
     {
         auto epub = Epub::Open(FromBuffer(buf));
         if (!epub) throw ref new FailureException("This file is not a readable EPUB.");
@@ -193,8 +219,8 @@ task<Book^> Library::Import(StorageFile^ file)
             Books()->InsertAt(0, book);
             Save();
             return book;
-        });
-    });
+        }, ui);
+    }, ui);
 }
 
 void Library::Remove(Book^ book)
@@ -202,7 +228,7 @@ void Library::Remove(Book^ book)
     unsigned int i;
     if (Books()->IndexOf(book, &i)) Books()->RemoveAt(i);
     Save();
-    for (auto p : { book->FilePath, book->CoverPath })
+    for (auto p : { book->FilePath, book->CoverPath, "notes/" + book->Id + ".json" })
     {
         if (!p || p->IsEmpty()) continue;
         GetFile(p).then([](StorageFile^ f) { return f->DeleteAsync(); }).then([](task<void> t) { Swallow(t); });

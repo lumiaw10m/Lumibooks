@@ -1,55 +1,158 @@
 <Page
     x:Class="Lumibooks.ReaderPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Lumibooks">
+
+    <Page.Resources>
+        <DataTemplate x:Key="TocTemplate" x:DataType="local:NavItem">
+            <TextBlock Text="{x:Bind Title}" Margin="{x:Bind Indent}" TextWrapping="Wrap" />
+        </DataTemplate>
+        <DataTemplate x:Key="NoteTemplate" x:DataType="local:NavItem">
+            <StackPanel Margin="0,8">
+                <TextBlock Text="{x:Bind Title}" TextWrapping="Wrap" MaxLines="3" TextTrimming="CharacterEllipsis" />
+                <TextBlock Text="{x:Bind Detail}" Style="{StaticResource CaptionTextBlockStyle}" Opacity="0.7" TextWrapping="Wrap" MaxLines="2" />
+            </StackPanel>
+        </DataTemplate>
+        <Style x:Key="IconButton" TargetType="Button">
+            <Setter Property="Width" Value="40" />
+            <Setter Property="Height" Value="40" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Margin" Value="0,0,2,0" />
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+        <Style x:Key="ThemeButton" TargetType="Button">
+            <Setter Property="Content" Value="Aa" />
+            <Setter Property="Width" Value="48" />
+            <Setter Property="Height" Value="40" />
+            <Setter Property="Margin" Value="0,0,6,0" />
+        </Style>
+    </Page.Resources>
 
     <Grid x:Name="Root">
         <WebView x:Name="Web" ScriptNotify="OnScriptNotify"
                  NavigationStarting="OnNavigationStarting" NavigationCompleted="OnNavigationCompleted" />
+        <Polygon x:Name="Ribbon" Points="0,0 18,0 18,26 9,19 0,26" Fill="{ThemeResource SystemControlBackgroundAccentBrush}"
+                 HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,0,20,0" Visibility="Collapsed" IsHitTestVisible="False" />
+
         <StackPanel x:Name="Bar" VerticalAlignment="Bottom" Visibility="Collapsed" Background="{ThemeResource SystemControlBackgroundChromeMediumBrush}">
             <TextBlock x:Name="Status" Margin="12,8,12,0" Style="{StaticResource CaptionTextBlockStyle}" />
             <CommandBar>
-                <AppBarButton Icon="Previous" Label="Previous chapter" Click="OnPrevChapter" />
-                <AppBarButton Icon="Next" Label="Next chapter" Click="OnNextChapter" />
-                <AppBarButton Label="Text">
+                <AppBarButton Label="Contents" Click="OnContents">
+                    <AppBarButton.Icon>
+                        <FontIcon Glyph="&#xE8FD;" />
+                    </AppBarButton.Icon>
+                </AppBarButton>
+                <AppBarToggleButton x:Name="MarkButton" Label="Bookmark" Click="OnBookmark">
+                    <AppBarToggleButton.Icon>
+                        <FontIcon Glyph="&#xE8A4;" />
+                    </AppBarToggleButton.Icon>
+                </AppBarToggleButton>
+                <AppBarButton Label="Display">
                     <AppBarButton.Icon>
                         <FontIcon Glyph="&#xE8D2;" />
                     </AppBarButton.Icon>
                     <AppBarButton.Flyout>
                         <Flyout>
-                            <StackPanel Width="272">
-                                <ComboBox x:Name="FontBox" Header="Font" HorizontalAlignment="Stretch" SelectionChanged="OnFontChanged" />
-                                <Slider x:Name="SizeSlider" Header="Size" Minimum="60" Maximum="250" StepFrequency="10" Margin="0,8,0,0" ValueChanged="OnSliderChanged" />
-                                <Slider x:Name="LineSlider" Header="Line height" Minimum="10" Maximum="25" StepFrequency="1" ValueChanged="OnSliderChanged" />
-                                <Slider x:Name="MarginSlider" Header="Margins" Minimum="0" Maximum="48" StepFrequency="4" ValueChanged="OnSliderChanged" />
-                                <TextBlock Text="Theme" Margin="0,0,0,8" />
-                                <StackPanel Orientation="Horizontal">
-                                    <Button Tag="0" Content="Aa" Width="60" Height="40" Margin="0,0,8,0" Background="#fff" Foreground="#111" Click="OnTheme" />
-                                    <Button Tag="1" Content="Aa" Width="60" Height="40" Margin="0,0,8,0" Background="#f4ecd8" Foreground="#5b4636" Click="OnTheme" />
-                                    <Button Tag="2" Content="Aa" Width="60" Height="40" Margin="0,0,8,0" Background="#1e1e1e" Foreground="#ccc" Click="OnTheme" />
-                                    <Button Tag="3" Content="Aa" Width="60" Height="40" Background="#000" Foreground="#999" Click="OnTheme" />
-                                </StackPanel>
-                                <ToggleSwitch x:Name="JustifySwitch" Header="Justify" Margin="0,8,0,0" Toggled="OnJustifyToggled" />
-                            </StackPanel>
+                            <Pivot Width="300" Height="440">
+                                <PivotItem Header="Text" Margin="0">
+                                    <ScrollViewer>
+                                        <StackPanel>
+                                            <ComboBox x:Name="FontBox" Header="Font" HorizontalAlignment="Stretch" SelectionChanged="OnSelectionChanged" />
+                                            <Slider x:Name="SizeSlider" Header="Size" Minimum="60" Maximum="250" StepFrequency="10" Margin="0,8,0,0" ValueChanged="OnSliderChanged" />
+                                            <Slider x:Name="LineSlider" Header="Line height" Minimum="10" Maximum="25" StepFrequency="1" ValueChanged="OnSliderChanged" />
+                                            <Slider x:Name="LetterSlider" Header="Letter spacing" Minimum="-5" Maximum="10" StepFrequency="1" ValueChanged="OnSliderChanged" />
+                                            <ToggleSwitch x:Name="BoldSwitch" Header="Bold text" Toggled="OnToggled" />
+                                        </StackPanel>
+                                    </ScrollViewer>
+                                </PivotItem>
+                                <PivotItem Header="Layout" Margin="0">
+                                    <ScrollViewer>
+                                        <StackPanel>
+                                            <Slider x:Name="MarginSlider" Header="Side margins" Minimum="0" Maximum="48" StepFrequency="4" ValueChanged="OnSliderChanged" />
+                                            <Slider x:Name="VMarginSlider" Header="Top and bottom margins" Minimum="0" Maximum="64" StepFrequency="4" ValueChanged="OnSliderChanged" />
+                                            <ToggleSwitch x:Name="JustifySwitch" Header="Justify" Toggled="OnToggled" />
+                                            <ToggleSwitch x:Name="HyphenSwitch" Header="Hyphenation" Toggled="OnToggled" />
+                                            <ToggleSwitch x:Name="SpacingSwitch" Header="Override paragraph spacing" Toggled="OnToggled" />
+                                            <Slider x:Name="ParaSlider" Header="Space between paragraphs" Minimum="0" Maximum="20" StepFrequency="1" ValueChanged="OnSliderChanged" />
+                                            <Slider x:Name="IndentSlider" Header="First line indent" Minimum="0" Maximum="30" StepFrequency="5" ValueChanged="OnSliderChanged" />
+                                        </StackPanel>
+                                    </ScrollViewer>
+                                </PivotItem>
+                                <PivotItem Header="Colors" Margin="0">
+                                    <ScrollViewer>
+                                        <StackPanel>
+                                            <TextBlock Text="Theme" Margin="0,0,0,8" />
+                                            <StackPanel Orientation="Horizontal">
+                                                <Button Tag="0" Style="{StaticResource ThemeButton}" Background="#fff" Foreground="#111" Click="OnTheme" />
+                                                <Button Tag="1" Style="{StaticResource ThemeButton}" Background="#f4ecd8" Foreground="#5b4636" Click="OnTheme" />
+                                                <Button Tag="2" Style="{StaticResource ThemeButton}" Background="#1e1e1e" Foreground="#ccc" Click="OnTheme" />
+                                                <Button Tag="3" Style="{StaticResource ThemeButton}" Background="#000" Foreground="#999" Click="OnTheme" />
+                                                <Button x:Name="CustomTheme" Tag="4" Style="{StaticResource ThemeButton}" Click="OnTheme" />
+                                            </StackPanel>
+                                            <TextBlock Text="Text color" Margin="0,12,0,8" />
+                                            <VariableSizedWrapGrid x:Name="FgSwatches" Orientation="Horizontal" ItemWidth="38" ItemHeight="38" MaximumRowsOrColumns="7" />
+                                            <TextBlock Text="Background color" Margin="0,8,0,8" />
+                                            <VariableSizedWrapGrid x:Name="BgSwatches" Orientation="Horizontal" ItemWidth="38" ItemHeight="38" MaximumRowsOrColumns="7" />
+                                            <ToggleSwitch x:Name="NightSwitch" Header="Night light" Margin="0,8,0,0" Toggled="OnToggled" />
+                                            <Slider x:Name="WarmSlider" Header="Warmth" Minimum="0" Maximum="100" StepFrequency="5" ValueChanged="OnSliderChanged" />
+                                            <Slider x:Name="DimSlider" Header="Dim" Minimum="0" Maximum="80" StepFrequency="5" ValueChanged="OnSliderChanged" />
+                                        </StackPanel>
+                                    </ScrollViewer>
+                                </PivotItem>
+                                <PivotItem Header="Voice" Margin="0">
+                                    <ScrollViewer>
+                                        <StackPanel>
+                                            <ComboBox x:Name="VoiceBox" Header="Voice" HorizontalAlignment="Stretch" SelectionChanged="OnVoiceChanged" />
+                                            <Slider x:Name="RateSlider" Header="Speed" Minimum="-50" Maximum="100" StepFrequency="10" Margin="0,8,0,0" ValueChanged="OnVoiceSliderChanged" />
+                                            <Slider x:Name="PitchSlider" Header="Pitch" Minimum="-50" Maximum="50" StepFrequency="5" ValueChanged="OnVoiceSliderChanged" />
+                                        </StackPanel>
+                                    </ScrollViewer>
+                                </PivotItem>
+                            </Pivot>
                         </Flyout>
                     </AppBarButton.Flyout>
                 </AppBarButton>
                 <AppBarButton x:Name="SpeakButton" Icon="Play" Label="Read aloud" Click="OnSpeak" />
-                <AppBarButton Label="Voice">
-                    <AppBarButton.Icon>
-                        <FontIcon Glyph="&#xE767;" />
-                    </AppBarButton.Icon>
-                    <AppBarButton.Flyout>
-                        <Flyout>
-                            <StackPanel Width="272">
-                                <ComboBox x:Name="VoiceBox" Header="Voice" HorizontalAlignment="Stretch" SelectionChanged="OnVoiceChanged" />
-                                <Slider x:Name="RateSlider" Header="Speed" Minimum="-50" Maximum="100" StepFrequency="10" Margin="0,8,0,0" ValueChanged="OnVoiceSliderChanged" />
-                                <Slider x:Name="PitchSlider" Header="Pitch" Minimum="-50" Maximum="50" StepFrequency="5" ValueChanged="OnVoiceSliderChanged" />
-                            </StackPanel>
-                        </Flyout>
-                    </AppBarButton.Flyout>
-                </AppBarButton>
+                <CommandBar.SecondaryCommands>
+                    <AppBarButton Label="Previous chapter" Click="OnPrevChapter" />
+                    <AppBarButton Label="Next chapter" Click="OnNextChapter" />
+                </CommandBar.SecondaryCommands>
             </CommandBar>
         </StackPanel>
+
+        <StackPanel x:Name="SelBar" VerticalAlignment="Bottom" Visibility="Collapsed" Background="{ThemeResource SystemControlBackgroundChromeMediumBrush}">
+            <TextBlock x:Name="SelText" Margin="12,8,12,0" MaxLines="2" TextWrapping="Wrap" TextTrimming="CharacterEllipsis" Style="{StaticResource CaptionTextBlockStyle}" />
+            <TextBlock x:Name="SelNote" Margin="12,4,12,0" MaxLines="3" TextWrapping="Wrap" TextTrimming="CharacterEllipsis" FontStyle="Italic" Visibility="Collapsed" />
+            <StackPanel Orientation="Horizontal" Margin="12,8,12,8">
+                <Button Tag="1" Style="{StaticResource IconButton}" Click="OnHighlightColor"><Ellipse Width="24" Height="24" Fill="#ffd600" /></Button>
+                <Button Tag="2" Style="{StaticResource IconButton}" Click="OnHighlightColor"><Ellipse Width="24" Height="24" Fill="#6ed26e" /></Button>
+                <Button Tag="3" Style="{StaticResource IconButton}" Click="OnHighlightColor"><Ellipse Width="24" Height="24" Fill="#5aaaff" /></Button>
+                <Button Tag="4" Style="{StaticResource IconButton}" Click="OnHighlightColor"><Ellipse Width="24" Height="24" Fill="#ff78aa" /></Button>
+                <Button Style="{StaticResource IconButton}" Click="OnNote"><FontIcon Glyph="&#xE70B;" /></Button>
+                <Button Style="{StaticResource IconButton}" Click="OnCopy"><FontIcon Glyph="&#xE8C8;" /></Button>
+                <Button x:Name="DeleteButton" Style="{StaticResource IconButton}" Click="OnDeleteHighlight"><FontIcon Glyph="&#xE74D;" /></Button>
+                <Button Style="{StaticResource IconButton}" Click="OnSelClose"><FontIcon Glyph="&#xE711;" /></Button>
+            </StackPanel>
+        </StackPanel>
+
+        <Grid x:Name="Panel" Visibility="Collapsed" Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+            <Pivot>
+                <PivotItem Header="Contents">
+                    <ListView x:Name="TocList" SelectionMode="None" IsItemClickEnabled="True" ItemClick="OnNavItemClick" ItemTemplate="{StaticResource TocTemplate}" />
+                </PivotItem>
+                <PivotItem Header="Bookmarks">
+                    <ListView x:Name="MarkList" SelectionMode="None" IsItemClickEnabled="True" ItemClick="OnNavItemClick" ItemTemplate="{StaticResource NoteTemplate}"
+                              Holding="OnNavItemHolding" RightTapped="OnNavItemRightTapped" />
+                </PivotItem>
+                <PivotItem Header="Highlights">
+                    <ListView x:Name="NoteList" SelectionMode="None" IsItemClickEnabled="True" ItemClick="OnNavItemClick" ItemTemplate="{StaticResource NoteTemplate}"
+                              Holding="OnNavItemHolding" RightTapped="OnNavItemRightTapped" />
+                </PivotItem>
+            </Pivot>
+        </Grid>
+
+        <Border x:Name="Warm" IsHitTestVisible="False" Visibility="Collapsed" />
+        <Border x:Name="Dim" IsHitTestVisible="False" Visibility="Collapsed" />
     </Grid>
 </Page>

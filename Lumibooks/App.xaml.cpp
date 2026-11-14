@@ -61,6 +61,13 @@ void App::OnFileActivated(FileActivatedEventArgs^ e)
 void App::OnBackRequested(Object^ sender, BackRequestedEventArgs^ e)
 {
     auto frame = dynamic_cast<Frame^>(Window::Current->Content);
+    ReaderPage^ reader = nullptr;
+    if (frame) reader = dynamic_cast<ReaderPage^>(frame->Content);
+    if (reader && reader->HandleBack())
+    {
+        e->Handled = true;
+        return;
+    }
     if (frame && frame->CanGoBack)
     {
         e->Handled = true;

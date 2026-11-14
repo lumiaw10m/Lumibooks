@@ -9,6 +9,9 @@
 #include <memory>
 #include <mutex>
 #include <cctype>
+#include <cstdarg>
+#include <cstdint>
+#include <functional>
 #include <cstring>
 #include <cwctype>
 #include "App.xaml.h"

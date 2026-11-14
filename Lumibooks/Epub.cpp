@@ -124,6 +124,86 @@ static bool IsImage(const std::string& p)
     return ext == "jpg" || ext == "jpeg" || ext == "png" || ext == "gif" || ext == "bmp";
 }
 
+static std::string DirOf(const std::string& path)
+{
+    return path.substr(0, path.rfind('/') + 1);
+}
+
+static void Target(const std::string& dir, const std::wstring& href, TocEntry& t)
+{
+    std::string h = Utf8(href.c_str());
+    size_t hash = h.find('#');
+    t.fragment = hash == std::string::npos ? std::string() : UrlDecode(h.substr(hash + 1));
+    t.path = JoinPath(dir, UrlDecode(h.substr(0, hash)));
+}
+
+void Epub::ParseNav(const std::string& path)
+{
+    auto doc = LoadXml(path);
+    if (!doc) return;
+    std::vector<XmlElement^> els;
+    Walk(doc, els);
+    XmlElement^ nav = nullptr;
+    for (auto el : els)
+    {
+        if (!Is(el, L"nav")) continue;
+        if (Attr(el, L"epub:type").find(L"toc") != std::wstring::npos) { nav = el; break; }
+        if (!nav) nav = el;
+    }
+    if (!nav) return;
+    std::string dir = DirOf(path);
+    std::function<void(IXmlNode^, int)> visit = [&](IXmlNode^ n, int depth)
+    {
+        for (auto c = n->FirstChild; c; c = c->NextSibling)
+        {
+            if (c->NodeType != NodeType::ElementNode) continue;
+            auto e = safe_cast<XmlElement^>(c);
+            if (Is(e, L"ol")) visit(c, depth + 1);
+            else if (Is(e, L"a"))
+            {
+                TocEntry t;
+                t.title = Trim(e->InnerText);
+                t.depth = depth < 0 ? 0 : depth;
+                Target(dir, Attr(e, L"href"), t);
+                if (!t.title.empty()) toc.push_back(t);
+            }
+            else visit(c, depth);
+        }
+    };
+    visit(nav, -1);
+}
+
+void Epub::ParseNcx(const std::string& path)
+{
+    auto doc = LoadXml(path);
+    if (!doc) return;
+    std::string dir = DirOf(path);
+    std::function<void(IXmlNode^, int)> visit = [&](IXmlNode^ n, int depth)
+    {
+        for (auto c = n->FirstChild; c; c = c->NextSibling)
+        {
+            if (c->NodeType != NodeType::ElementNode) continue;
+            auto e = safe_cast<XmlElement^>(c);
+            if (Is(e, L"navPoint"))
+            {
+                TocEntry t;
+                t.depth = depth;
+                for (auto d = c->FirstChild; d; d = d->NextSibling)
+                {
+                    if (d->NodeType != NodeType::ElementNode) continue;
+                    auto de = safe_cast<XmlElement^>(d);
+                    if (Is(de, L"navLabel")) t.title = Trim(de->InnerText);
+                    else if (Is(de, L"content")) Target(dir, Attr(de, L"src"), t);
+                }
+                if (!t.title.empty() && !t.path.empty()) toc.push_back(t);
+                visit(c, depth + 1);
+            }
+            else if (!Is(e, L"navLabel") && !Is(e, L"content")) visit(c, depth);
+        }
+    };
+    visit(doc, 0);
+}
+
 Epub::~Epub()
 {
     if (open) mz_zip_reader_end(&zip);
@@ -177,9 +257,10 @@ std::shared_ptr<Epub> Epub::Open(std::vector<uint8_t>&& data)
     if (!opf.empty()) doc = e->LoadXml(opf);
     if (!doc) return nullptr;
 
-    std::string dir = opf.substr(0, opf.rfind('/') + 1);
+    std::string dir = DirOf(opf);
     std::map<std::wstring, std::string> items;
-    std::wstring coverId;
+    std::wstring coverId, tocId;
+    std::string navPath, ncxPath;
     std::vector<std::wstring> refs;
     els.clear();
     Walk(doc, els);
@@ -192,8 +273,12 @@ std::shared_ptr<Epub> Epub::Open(std::vector<uint8_t>&& data)
         {
             std::string href = JoinPath(dir, UrlDecode(Utf8(Attr(el, L"href").c_str())));
             items[Attr(el, L"id")] = href;
-            if (Attr(el, L"properties").find(L"cover-image") != std::wstring::npos) e->coverPath = href;
+            std::wstring props = Attr(el, L"properties");
+            if (props.find(L"cover-image") != std::wstring::npos) e->coverPath = href;
+            if (props.find(L"nav") != std::wstring::npos) navPath = href;
+            if (Attr(el, L"media-type") == L"application/x-dtbncx+xml") ncxPath = href;
         }
+        else if (Is(el, L"spine")) tocId = Attr(el, L"toc");
         else if (Is(el, L"itemref")) refs.push_back(Attr(el, L"idref"));
     }
     for (auto& r : refs)
@@ -216,5 +301,8 @@ std::shared_ptr<Epub> Epub::Open(std::vector<uint8_t>&& data)
         }
     }
     if (e->spine.empty()) return nullptr;
+    if (!tocId.empty() && items.count(tocId)) ncxPath = items[tocId];
+    if (!navPath.empty()) e->ParseNav(navPath);
+    if (e->toc.empty() && !ncxPath.empty()) e->ParseNcx(ncxPath);
     return e;
 }

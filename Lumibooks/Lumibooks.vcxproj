@@ -99,6 +99,7 @@
     <ClInclude Include="EpubResolver.h" />
     <ClInclude Include="Settings.h" />
     <ClInclude Include="ReadAloud.h" />
+    <ClInclude Include="Annotations.h" />
     <ClInclude Include="ThirdParty\miniz\miniz.h" />
   </ItemGroup>
   <ItemGroup>
@@ -150,6 +151,7 @@
     <ClCompile Include="EpubResolver.cpp" />
     <ClCompile Include="Settings.cpp" />
     <ClCompile Include="ReadAloud.cpp" />
+    <ClCompile Include="Annotations.cpp" />
     <ClCompile Include="ThirdParty\miniz\miniz.c">
       <CompileAsWinRT>false</CompileAsWinRT>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
