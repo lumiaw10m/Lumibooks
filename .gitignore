@@ -16,3 +16,5 @@ BundleArtifacts/
 *.appx
 *.appxbundle
 *.appxupload
+Lumibooks/out/
+*.log

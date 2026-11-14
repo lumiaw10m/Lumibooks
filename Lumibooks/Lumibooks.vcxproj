@@ -50,6 +50,7 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
     <AppxBundle>Never</AppxBundle>
+    <PackageCertificateKeyFile>Lumibooks.pfx</PackageCertificateKeyFile>
   </PropertyGroup>
   <ItemDefinitionGroup>
     <ClCompile>
