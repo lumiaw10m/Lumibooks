@@ -712,7 +712,8 @@ void ReaderPage::UpdateSpeakButton()
 {
     bool on = (speech && speech->IsActive()) || resumeSpeech;
     SpeakButton->Icon = ref new SymbolIcon(on ? Symbol::Stop : Symbol::Play);
-    SpeakButton->Label = on ? "Stop reading" : "Read aloud";
+    if (on) SpeakButton->Label = "Stop reading";
+    else SpeakButton->Label = "Read aloud";
 }
 
 void ReaderPage::OnSpeak(Object^ sender, RoutedEventArgs^ e)
