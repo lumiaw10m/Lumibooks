@@ -22,7 +22,7 @@ Settings& Settings::Get()
     return s;
 }
 
-static int ReadInt(Collections::IPropertySet^ v, String^ key, int def, int lo, int hi)
+static int ReadInt(Windows::Foundation::Collections::IPropertySet^ v, String^ key, int def, int lo, int hi)
 {
     if (!v->HasKey(key)) return def;
     auto p = dynamic_cast<IPropertyValue^>(v->Lookup(key));
