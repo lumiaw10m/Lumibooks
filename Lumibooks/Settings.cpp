@@ -40,6 +40,13 @@ void Settings::Load()
     margin = ReadInt(v, "margin", margin, 0, 64);
     theme = ReadInt(v, "theme", theme, 0, ThemeCount - 1);
     justify = ReadInt(v, "justify", justify ? 1 : 0, 0, 1) != 0;
+    rate = ReadInt(v, "rate", rate, -50, 100);
+    pitch = ReadInt(v, "pitch", pitch, -50, 50);
+    if (v->HasKey("voice"))
+    {
+        auto p = dynamic_cast<IPropertyValue^>(v->Lookup("voice"));
+        if (p && p->Type == PropertyType::String) voice = p->GetString()->Data();
+    }
 }
 
 void Settings::Save() const
@@ -51,6 +58,9 @@ void Settings::Save() const
     v->Insert("margin", PropertyValue::CreateInt32(margin));
     v->Insert("theme", PropertyValue::CreateInt32(theme));
     v->Insert("justify", PropertyValue::CreateInt32(justify ? 1 : 0));
+    v->Insert("rate", PropertyValue::CreateInt32(rate));
+    v->Insert("pitch", PropertyValue::CreateInt32(pitch));
+    v->Insert("voice", PropertyValue::CreateString(ref new String(voice.c_str())));
 }
 
 String^ Settings::Json() const

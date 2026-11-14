@@ -12,6 +12,9 @@ namespace Lumibooks
         int margin = 16;
         int theme = 0;
         bool justify = true;
+        std::wstring voice;
+        int rate = 0;
+        int pitch = 0;
 
         static Settings& Get();
         static const wchar_t* const Fonts[];

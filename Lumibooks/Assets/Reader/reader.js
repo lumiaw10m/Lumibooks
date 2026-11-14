@@ -66,6 +66,107 @@
         document.documentElement.className += ' lb-ready';
     };
 
+    var sents = [], hl = -1;
+    var BLOCK = /^(p|div|h[1-6]|li|blockquote|td|th|dd|dt|pre|section|article|aside|header|footer|figcaption|caption|body|tr|table|ul|ol|dl|figure|nav|main|address)$/;
+    var SKIP = /^(script|style|rt|rp|noscript|svg|math)$/;
+    var CLOSE = /["'\u201d\u2019\u00bb)\]]/;
+    var ABBR = /^(mr|mrs|ms|dr|st|jr|sr|prof|vs|sra|dra|mme|mlle|no|vol|ch|fig)$/i;
+
+    function blockOf(n) {
+        for (var e = n.parentNode; e && e.localName; e = e.parentNode) {
+            if (SKIP.test(e.localName)) return null;
+            if (BLOCK.test(e.localName)) return e;
+        }
+        return null;
+    }
+
+    function isEnd(t, i) {
+        var c = t.charAt(i);
+        if ('.!?\u2026\u3002\uff01\uff1f'.indexOf(c) < 0) return false;
+        var j = i + 1;
+        while (j < t.length && CLOSE.test(t.charAt(j))) j++;
+        if (j < t.length && !/\s/.test(t.charAt(j))) return false;
+        var k = j;
+        while (k < t.length && /\s/.test(t.charAt(k))) k++;
+        if (k < t.length && /[a-z\u00df-\u00ff]/.test(t.charAt(k))) return false;
+        if (c == '.') {
+            var m = /([^\s.]+)$/.exec(t.slice(Math.max(0, i - 12), i));
+            var w = m ? m[1].replace(/^\W+/, '') : '';
+            if (/^[A-Z]$/.test(w) || ABBR.test(w)) return false;
+        }
+        return true;
+    }
+
+    function build() {
+        var walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null, false), n, segs = [], seg = null;
+        while ((n = walker.nextNode())) {
+            var b = blockOf(n);
+            if (!b) continue;
+            if (!seg || seg.b != b) { seg = { b: b, nodes: [], text: '' }; segs.push(seg); }
+            seg.nodes.push({ n: n, at: seg.text.length, cuts: [] });
+            seg.text += n.nodeValue;
+        }
+        segs.forEach(function (sg) {
+            var t = sg.text, L = t.length, a = 0;
+            while (a < L) {
+                var e = a;
+                while (e < L && !isEnd(t, e)) e++;
+                if (e < L) { e++; while (e < L && CLOSE.test(t.charAt(e))) e++; }
+                var s = a, z = e;
+                while (s < z && /\s/.test(t.charAt(s))) s++;
+                while (z > s && /\s/.test(t.charAt(z - 1))) z--;
+                if (z > s && /[0-9A-Za-z\u00c0-\uffff]/.test(t.slice(s, z))) {
+                    var idx = sents.length;
+                    sents.push({ t: t.slice(s, z), e: [] });
+                    sg.nodes.forEach(function (r) {
+                        var ns = Math.max(s, r.at) - r.at, ne = Math.min(z, r.at + r.n.nodeValue.length) - r.at;
+                        if (ne > ns) r.cuts.push({ s: ns, e: ne, i: idx });
+                    });
+                }
+                a = e;
+            }
+            sg.nodes.forEach(function (r) {
+                if (!r.cuts.length) return;
+                var v = r.n.nodeValue, pos = 0, f = document.createDocumentFragment();
+                r.cuts.forEach(function (c) {
+                    if (c.s > pos) f.appendChild(document.createTextNode(v.slice(pos, c.s)));
+                    var sp = document.createElementNS('http://www.w3.org/1999/xhtml', 'span');
+                    sp.className = 'lb-s';
+                    sp.textContent = v.slice(c.s, c.e);
+                    f.appendChild(sp);
+                    sents[c.i].e.push(sp);
+                    pos = c.e;
+                });
+                if (pos < v.length) f.appendChild(document.createTextNode(v.slice(pos)));
+                r.n.parentNode.replaceChild(f, r.n);
+            });
+        });
+    }
+
+    function pageOfSentence(i) {
+        return pageOf(sents[i].e[0]);
+    }
+
+    window.lbSentences = function (from) {
+        if (!sents.length) build();
+        var start = 0;
+        if (from == 'page') {
+            while (start < sents.length && pageOfSentence(start) < page) start++;
+            start = Math.max(0, Math.min(start, sents.length - 1));
+        }
+        return JSON.stringify({ start: start, s: sents.map(function (x) { return x.t; }) });
+    };
+
+    window.lbHighlight = function (i) {
+        i = +i;
+        if (sents[hl]) sents[hl].e.forEach(function (e) { e.className = 'lb-s'; });
+        hl = i;
+        if (!sents[i]) return;
+        sents[i].e.forEach(function (e) { e.className = 'lb-s lb-hl'; });
+        var p = pageOfSentence(i);
+        if (p != page) go(p, true);
+    };
+
     document.addEventListener('click', function (e) {
         if (Date.now() - swipeAt < 500) { e.preventDefault(); return; }
         for (var t = e.target; t && t.getAttribute; t = t.parentNode) {

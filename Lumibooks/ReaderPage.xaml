@@ -6,35 +6,50 @@
     <Grid x:Name="Root">
         <WebView x:Name="Web" ScriptNotify="OnScriptNotify"
                  NavigationStarting="OnNavigationStarting" NavigationCompleted="OnNavigationCompleted" />
-        <CommandBar x:Name="Bar" VerticalAlignment="Bottom" Visibility="Collapsed">
-            <CommandBar.Content>
-                <TextBlock x:Name="Status" Margin="12,14,0,0" Style="{StaticResource CaptionTextBlockStyle}" />
-            </CommandBar.Content>
-            <AppBarButton Icon="Previous" Label="Previous chapter" Click="OnPrevChapter" />
-            <AppBarButton Icon="Next" Label="Next chapter" Click="OnNextChapter" />
-            <AppBarButton Label="Text">
-                <AppBarButton.Icon>
-                    <FontIcon Glyph="&#xE8D2;" />
-                </AppBarButton.Icon>
-                <AppBarButton.Flyout>
-                    <Flyout>
-                        <StackPanel Width="272">
-                            <ComboBox x:Name="FontBox" Header="Font" HorizontalAlignment="Stretch" SelectionChanged="OnFontChanged" />
-                            <Slider x:Name="SizeSlider" Header="Size" Minimum="60" Maximum="250" StepFrequency="10" Margin="0,8,0,0" ValueChanged="OnSliderChanged" />
-                            <Slider x:Name="LineSlider" Header="Line height" Minimum="10" Maximum="25" StepFrequency="1" ValueChanged="OnSliderChanged" />
-                            <Slider x:Name="MarginSlider" Header="Margins" Minimum="0" Maximum="48" StepFrequency="4" ValueChanged="OnSliderChanged" />
-                            <TextBlock Text="Theme" Margin="0,0,0,8" />
-                            <StackPanel Orientation="Horizontal">
-                                <Button Tag="0" Content="Aa" Width="60" Height="40" Margin="0,0,8,0" Background="#fff" Foreground="#111" Click="OnTheme" />
-                                <Button Tag="1" Content="Aa" Width="60" Height="40" Margin="0,0,8,0" Background="#f4ecd8" Foreground="#5b4636" Click="OnTheme" />
-                                <Button Tag="2" Content="Aa" Width="60" Height="40" Margin="0,0,8,0" Background="#1e1e1e" Foreground="#ccc" Click="OnTheme" />
-                                <Button Tag="3" Content="Aa" Width="60" Height="40" Background="#000" Foreground="#999" Click="OnTheme" />
+        <StackPanel x:Name="Bar" VerticalAlignment="Bottom" Visibility="Collapsed" Background="{ThemeResource SystemControlBackgroundChromeMediumBrush}">
+            <TextBlock x:Name="Status" Margin="12,8,12,0" Style="{StaticResource CaptionTextBlockStyle}" />
+            <CommandBar>
+                <AppBarButton Icon="Previous" Label="Previous chapter" Click="OnPrevChapter" />
+                <AppBarButton Icon="Next" Label="Next chapter" Click="OnNextChapter" />
+                <AppBarButton Label="Text">
+                    <AppBarButton.Icon>
+                        <FontIcon Glyph="&#xE8D2;" />
+                    </AppBarButton.Icon>
+                    <AppBarButton.Flyout>
+                        <Flyout>
+                            <StackPanel Width="272">
+                                <ComboBox x:Name="FontBox" Header="Font" HorizontalAlignment="Stretch" SelectionChanged="OnFontChanged" />
+                                <Slider x:Name="SizeSlider" Header="Size" Minimum="60" Maximum="250" StepFrequency="10" Margin="0,8,0,0" ValueChanged="OnSliderChanged" />
+                                <Slider x:Name="LineSlider" Header="Line height" Minimum="10" Maximum="25" StepFrequency="1" ValueChanged="OnSliderChanged" />
+                                <Slider x:Name="MarginSlider" Header="Margins" Minimum="0" Maximum="48" StepFrequency="4" ValueChanged="OnSliderChanged" />
+                                <TextBlock Text="Theme" Margin="0,0,0,8" />
+                                <StackPanel Orientation="Horizontal">
+                                    <Button Tag="0" Content="Aa" Width="60" Height="40" Margin="0,0,8,0" Background="#fff" Foreground="#111" Click="OnTheme" />
+                                    <Button Tag="1" Content="Aa" Width="60" Height="40" Margin="0,0,8,0" Background="#f4ecd8" Foreground="#5b4636" Click="OnTheme" />
+                                    <Button Tag="2" Content="Aa" Width="60" Height="40" Margin="0,0,8,0" Background="#1e1e1e" Foreground="#ccc" Click="OnTheme" />
+                                    <Button Tag="3" Content="Aa" Width="60" Height="40" Background="#000" Foreground="#999" Click="OnTheme" />
+                                </StackPanel>
+                                <ToggleSwitch x:Name="JustifySwitch" Header="Justify" Margin="0,8,0,0" Toggled="OnJustifyToggled" />
                             </StackPanel>
-                            <ToggleSwitch x:Name="JustifySwitch" Header="Justify" Margin="0,8,0,0" Toggled="OnJustifyToggled" />
-                        </StackPanel>
-                    </Flyout>
-                </AppBarButton.Flyout>
-            </AppBarButton>
-        </CommandBar>
+                        </Flyout>
+                    </AppBarButton.Flyout>
+                </AppBarButton>
+                <AppBarButton x:Name="SpeakButton" Icon="Play" Label="Read aloud" Click="OnSpeak" />
+                <AppBarButton Label="Voice">
+                    <AppBarButton.Icon>
+                        <FontIcon Glyph="&#xE767;" />
+                    </AppBarButton.Icon>
+                    <AppBarButton.Flyout>
+                        <Flyout>
+                            <StackPanel Width="272">
+                                <ComboBox x:Name="VoiceBox" Header="Voice" HorizontalAlignment="Stretch" SelectionChanged="OnVoiceChanged" />
+                                <Slider x:Name="RateSlider" Header="Speed" Minimum="-50" Maximum="100" StepFrequency="10" Margin="0,8,0,0" ValueChanged="OnVoiceSliderChanged" />
+                                <Slider x:Name="PitchSlider" Header="Pitch" Minimum="-50" Maximum="50" StepFrequency="5" ValueChanged="OnVoiceSliderChanged" />
+                            </StackPanel>
+                        </Flyout>
+                    </AppBarButton.Flyout>
+                </AppBarButton>
+            </CommandBar>
+        </StackPanel>
     </Grid>
 </Page>
