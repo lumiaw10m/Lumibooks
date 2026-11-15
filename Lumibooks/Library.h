@@ -43,6 +43,15 @@ namespace Lumibooks
         Windows::UI::Xaml::Media::ImageSource^ cover;
     };
 
+    [Windows::UI::Xaml::Data::Bindable]
+    public ref class BookGroup sealed
+    {
+    public:
+        BookGroup() { Items = ref new Platform::Collections::Vector<Book^>(); }
+        property Platform::String^ Title;
+        property Windows::Foundation::Collections::IObservableVector<Book^>^ Items;
+    };
+
     class Library
     {
     public:

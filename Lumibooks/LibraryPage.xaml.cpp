@@ -17,12 +17,32 @@ using namespace Windows::UI::Xaml::Controls;
 using namespace Windows::UI::Xaml::Input;
 using namespace Windows::UI::Xaml::Interop;
 
-LibraryPage::LibraryPage() : building(false), sort(0)
+static String^ SortKey(const std::wstring& shelf)
+{
+    return shelf.empty() ? ref new String(L"sort") : ref new String((L"sort/" + shelf).c_str());
+}
+
+int LibraryPage::SortOf(const std::wstring& shelf)
+{
+    auto values = Windows::Storage::ApplicationData::Current->LocalSettings->Values;
+    for (auto key : { SortKey(shelf), SortKey(L"") })
+        if (values->HasKey(key))
+            if (auto v = dynamic_cast<Windows::Foundation::IPropertyValue^>(values->Lookup(key))) return v->GetInt32();
+    return 0;
+}
+
+void LibraryPage::MoveSort(const std::wstring& from, const std::wstring& to)
+{
+    auto values = Windows::Storage::ApplicationData::Current->LocalSettings->Values;
+    auto old = SortKey(from);
+    if (!values->HasKey(old)) return;
+    if (!to.empty()) values->Insert(SortKey(to), values->Lookup(old));
+    values->Remove(old);
+}
+
+LibraryPage::LibraryPage() : building(false)
 {
     InitializeComponent();
-    auto values = Windows::Storage::ApplicationData::Current->LocalSettings->Values;
-    if (values->HasKey("sort"))
-        if (auto v = dynamic_cast<Windows::Foundation::IPropertyValue^>(values->Lookup("sort"))) sort = v->GetInt32();
     WeakReference weak(this);
     Library::Books()->VectorChanged += ref new VectorChangedEventHandler<Book^>([weak](IObservableVector<Book^>^, IVectorChangedEventArgs^)
     {
@@ -66,27 +86,57 @@ void LibraryPage::Refresh()
         if (!query.empty() && Lower(b->Title).find(query) == std::wstring::npos && Lower(b->Author).find(query) == std::wstring::npos) continue;
         order.push_back(b);
     }
-    int mode = sort;
-    std::stable_sort(order.begin(), order.end(), [mode](Book^ a, Book^ b)
-    {
-        if (a->Favorite != b->Favorite) return a->Favorite;
-        if (mode == 0) return a->Opened > b->Opened;
-        if (mode == 1) return Lower(a->Title) < Lower(b->Title);
-        if (mode == 2)
-        {
-            auto x = Lower(a->Author), y = Lower(b->Author);
-            if (x.empty() != y.empty()) return y.empty();
-            return x != y ? x < y : Lower(a->Title) < Lower(b->Title);
-        }
-        return false;
-    });
     for (size_t k = 0; k < views.size(); k++)
     {
         std::wstring shelf = k == 0 || k > all.size() ? std::wstring() : all[k - 1];
         auto& v = views[k];
-        v.books->Clear();
+        int mode = SortOf(shelf);
+        std::vector<Book^> list;
         for (auto b : order)
-            if (shelf.empty() || b->InShelf(shelf)) v.books->Append(b);
+            if (shelf.empty() || b->InShelf(shelf)) list.push_back(b);
+        std::stable_sort(list.begin(), list.end(), [mode](Book^ a, Book^ b)
+        {
+            if (a->Favorite != b->Favorite) return a->Favorite;
+            if (mode == 0) return a->Opened > b->Opened;
+            if (mode == 1) return Lower(a->Title) < Lower(b->Title);
+            if (mode == 2)
+            {
+                auto x = Lower(a->Author), y = Lower(b->Author);
+                if (x.empty() != y.empty()) return y.empty();
+                return x != y ? x < y : Lower(a->Title) < Lower(b->Title);
+            }
+            return false;
+        });
+        v.books->Clear();
+        for (auto b : list) v.books->Append(b);
+        if (mode == 1 || mode == 2)
+        {
+            auto groups = ref new Vector<BookGroup^>();
+            BookGroup^ group = nullptr;
+            std::wstring key;
+            for (auto b : v.books)
+            {
+                std::wstring k;
+                if (b->Favorite) k = L"★ Favourites";
+                else if (mode == 2) k = b->Author && !b->Author->IsEmpty() ? std::wstring(b->Author->Data()) : L"Unknown author";
+                else
+                {
+                    wchar_t c = b->Title && !b->Title->IsEmpty() ? towupper(b->Title->Data()[0]) : L'#';
+                    k = iswalpha(c) ? std::wstring(1, c) : L"#";
+                }
+                if (!group || _wcsicmp(k.c_str(), key.c_str()) != 0)
+                {
+                    group = ref new BookGroup();
+                    group->Title = ref new String(k.c_str());
+                    groups->Append(group);
+                    key = k;
+                }
+                group->Items->Append(b);
+            }
+            v.source->Source = groups;
+            v.grid->ItemsSource = v.source->View;
+        }
+        else if (v.grid->ItemsSource != v.books) v.grid->ItemsSource = v.books;
         v.empty->Text = !Library::Books()->Size ? L"Your library is empty. Use Import to add books."
             : !query.empty() ? L"No books match your search."
             : L"This shelf is empty. Hold a book and choose Shelves to add it here.";
@@ -112,6 +162,7 @@ void LibraryPage::RebuildShelves(const std::wstring& select)
     Shelves->Items->Clear();
     views.clear();
     auto tpl = safe_cast<DataTemplate^>(Resources->Lookup("BookTemplate"));
+    auto groupTpl = safe_cast<DataTemplate^>(Resources->Lookup("GroupTemplate"));
     int index = 0;
     for (size_t i = 0; i <= all.size(); i++)
     {
@@ -127,6 +178,13 @@ void LibraryPage::RebuildShelves(const std::wstring& select)
         grid->SelectionMode = ListViewSelectionMode::None;
         grid->IsItemClickEnabled = true;
         grid->ItemClick += ref new ItemClickEventHandler(this, &LibraryPage::OnItemClick);
+        auto style = ref new GroupStyle();
+        style->HeaderTemplate = groupTpl;
+        grid->GroupStyle->Append(style);
+        v.grid = grid;
+        v.source = ref new Windows::UI::Xaml::Data::CollectionViewSource();
+        v.source->IsSourceGrouped = true;
+        v.source->ItemsPath = ref new PropertyPath("Items");
         auto host = ref new Grid();
         if (i == 0)
         {
@@ -195,15 +253,16 @@ void LibraryPage::OnSort(Object^ sender, RoutedEventArgs^ e)
     auto menu = ref new MenuFlyout();
     const wchar_t* names[] = { L"Recently read", L"Title", L"Author", L"Recently added" };
     LibraryPage^ self = this;
+    std::wstring shelf = Current();
+    int mode = SortOf(shelf);
     for (int i = 0; i < 4; i++)
     {
         auto item = ref new ToggleMenuFlyoutItem();
         item->Text = ref new String(names[i]);
-        item->IsChecked = i == sort;
-        item->Click += ref new RoutedEventHandler([self, i](Object^, RoutedEventArgs^)
+        item->IsChecked = i == mode;
+        item->Click += ref new RoutedEventHandler([self, i, shelf](Object^, RoutedEventArgs^)
         {
-            self->sort = i;
-            Windows::Storage::ApplicationData::Current->LocalSettings->Values->Insert("sort", i);
+            Windows::Storage::ApplicationData::Current->LocalSettings->Values->Insert(SortKey(shelf), i);
             self->Refresh();
         });
         menu->Items->Append(item);
@@ -254,6 +313,7 @@ void LibraryPage::OnRenameShelf(Object^ sender, RoutedEventArgs^ e)
     AskName("Rename shelf", ref new String(from.c_str()), [self, from](const std::wstring& to)
     {
         Library::RenameShelf(from, to);
+        self->MoveSort(from, to);
         self->RebuildShelves(to);
     });
 }
@@ -272,6 +332,7 @@ void LibraryPage::OnDeleteShelf(Object^ sender, RoutedEventArgs^ e)
     {
         if (r != ContentDialogResult::Primary) return;
         Library::DeleteShelf(name);
+        self->MoveSort(name, L"");
         self->RebuildShelves(L"");
     }, task_continuation_context::use_current());
 }

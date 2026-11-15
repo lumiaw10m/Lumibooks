@@ -17,11 +17,14 @@ namespace Lumibooks
         {
             Platform::Collections::Vector<Book^>^ books;
             Windows::UI::Xaml::Controls::TextBlock^ empty;
+            Windows::UI::Xaml::Controls::GridView^ grid;
+            Windows::UI::Xaml::Data::CollectionViewSource^ source;
         };
         std::vector<ShelfView> views;
         Windows::UI::Xaml::Controls::ContentControl^ continueCard;
         bool building;
-        int sort;
+        int SortOf(const std::wstring& shelf);
+        void MoveSort(const std::wstring& from, const std::wstring& to);
         std::wstring Current();
         void Refresh();
         void RebuildShelves(const std::wstring& select);

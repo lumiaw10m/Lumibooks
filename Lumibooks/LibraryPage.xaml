@@ -35,6 +35,10 @@
                 </Grid>
             </Grid>
         </DataTemplate>
+        <DataTemplate x:Key="GroupTemplate" x:DataType="local:BookGroup">
+            <TextBlock Text="{x:Bind Title}" Style="{StaticResource SubtitleTextBlockStyle}"
+                       Foreground="{ThemeResource SystemControlForegroundAccentBrush}" TextTrimming="CharacterEllipsis" />
+        </DataTemplate>
         <DataTemplate x:Key="ContinueTemplate" x:DataType="local:Book">
             <Grid Margin="0,0,12,12" Background="{ThemeResource SystemControlBackgroundBaseLowBrush}">
                 <Grid.ColumnDefinitions>

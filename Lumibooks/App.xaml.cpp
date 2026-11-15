@@ -51,9 +51,10 @@ static void ImportAndOpen(Frame^ frame, task<StorageFile^> file)
 
 void App::OnLaunched(LaunchActivatedEventArgs^ e)
 {
+    std::wstring arg = e->Arguments ? e->Arguments->Data() : L"";
+    if (arg.compare(0, 5, L"sort:") == 0) ApplicationData::Current->LocalSettings->Values->Insert("sort", _wtoi(arg.c_str() + 5));
     auto frame = EnsureFrame();
     Window::Current->Activate();
-    std::wstring arg = e->Arguments ? e->Arguments->Data() : L"";
     if (arg.compare(0, 7, L"import:") == 0)
     {
         auto path = ApplicationData::Current->LocalFolder->Path + "\\inbox\\" +ref new String(arg.c_str() + 7);
