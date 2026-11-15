@@ -18,6 +18,14 @@ namespace Lumibooks
         int depth;
     };
 
+    struct SearchHit
+    {
+        int chapter, k;
+        std::wstring snippet;
+    };
+
+    std::wstring HtmlText(const std::vector<uint8_t>& html);
+
     class Epub
     {
     public:
@@ -27,8 +35,9 @@ namespace Lumibooks
         void Add(const std::string& path, std::vector<uint8_t>&& data) { files[path] = std::move(data); }
         bool Read(const std::string& path, std::vector<uint8_t>& out);
         int SpineIndex(const std::string& path) const;
+        std::vector<SearchHit> Search(const std::wstring& query, size_t max);
 
-        std::wstring title, author;
+        std::wstring title, author, language;
         std::string coverPath;
         std::vector<std::string> spine;
         std::vector<TocEntry> toc;

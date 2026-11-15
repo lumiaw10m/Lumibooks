@@ -353,6 +353,7 @@ static std::shared_ptr<Epub> ConvertFb2(const std::vector<uint8_t>& data)
 
     auto info = Fb2::Child(Fb2::Child(root, L"description"), L"title-info");
     book.title = Fb2::Text(Fb2::Child(info, L"book-title"));
+    book.language = Fb2::Text(Fb2::Child(info, L"lang"));
     if (auto a = Fb2::Child(info, L"author"))
     {
         std::wstring name;
@@ -492,6 +493,7 @@ static void MobiMeta(const std::vector<uint8_t>& d, Epub& book, int& cover)
         if (type == 100 && book.author.empty()) book.author = Latin(v, vl, utf8);
         else if (type == 503) book.title = Latin(v, vl, utf8);
         else if (type == 201 && vl >= 4) cover = (int)BE32(v);
+        else if (type == 524) book.language = Latin(v, vl, utf8);
         p += len;
     }
 }
@@ -737,10 +739,10 @@ bool FixedDoc::Size(int page, float& w, float& h)
     return mu_page_size(doc, page, &w, &h) != 0;
 }
 
-bool FixedDoc::Render(int page, float scale, std::vector<uint8_t>& bgra, int& w, int& h)
+bool FixedDoc::Render(int page, float scale, const std::string& mark, std::vector<uint8_t>& bgra, int& w, int& h)
 {
     std::lock_guard<std::mutex> g(lock);
-    unsigned char* p = mu_render(doc, page, scale, &w, &h);
+    unsigned char* p = mu_render(doc, page, scale, mark.empty() ? nullptr : mark.c_str(), &w, &h);
     if (!p) return false;
     bgra.assign(p, p + (size_t)w * h * 4);
     mu_free(p);
@@ -756,4 +758,44 @@ bool FixedDoc::Cover(int width, std::vector<uint8_t>& png)
     png.assign(p, p + n);
     mu_free(p);
     return true;
+}
+
+std::wstring FixedDoc::PageText(int page)
+{
+    std::lock_guard<std::mutex> g(lock);
+    char* t = mu_page_text(doc, page);
+    if (!t) return std::wstring();
+    std::wstring r = Wide(t, strlen(t));
+    mu_free(t);
+    return r;
+}
+
+std::vector<SearchHit> FixedDoc::Search(const std::wstring& query, size_t max, const bool* cancel)
+{
+    std::vector<SearchHit> hits;
+    std::wstring q = query;
+    for (auto& c : q) c = towlower(c);
+    if (q.empty()) return hits;
+    for (int i = 0; i < pages && hits.size() < max && !(cancel && *cancel); i++)
+    {
+        std::wstring text = PageText(i), low = text;
+        for (auto& c : low) c = towlower(c);
+        int k = 0;
+        for (size_t at = 0; (at = low.find(q, at)) != std::wstring::npos && hits.size() < max; at++, k++)
+        {
+            size_t a = at > 40 ? at - 40 : 0, z = std::min(text.size(), at + q.size() + 60);
+            std::wstring snip;
+            bool space = false;
+            for (size_t j = a; j < z; j++)
+            {
+                wchar_t c = text[j];
+                if (iswspace(c)) { space = !snip.empty(); continue; }
+                if (space) snip += L' ';
+                space = false;
+                snip += c;
+            }
+            hits.push_back({ i, k, snip });
+        }
+    }
+    return hits;
 }

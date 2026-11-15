@@ -17,9 +17,12 @@ using namespace Windows::UI::Xaml::Controls;
 using namespace Windows::UI::Xaml::Input;
 using namespace Windows::UI::Xaml::Interop;
 
-LibraryPage::LibraryPage() : building(false)
+LibraryPage::LibraryPage() : building(false), sort(0)
 {
     InitializeComponent();
+    auto values = Windows::Storage::ApplicationData::Current->LocalSettings->Values;
+    if (values->HasKey("sort"))
+        if (auto v = dynamic_cast<Windows::Foundation::IPropertyValue^>(values->Lookup("sort"))) sort = v->GetInt32();
     WeakReference weak(this);
     Library::Books()->VectorChanged += ref new VectorChangedEventHandler<Book^>([weak](IObservableVector<Book^>^, IVectorChangedEventArgs^)
     {
@@ -40,21 +43,62 @@ std::wstring LibraryPage::Current()
     return i > 0 && i <= (int)all.size() ? all[i - 1] : std::wstring();
 }
 
+static std::wstring Lower(String^ s)
+{
+    std::wstring r = s ? s->Data() : L"";
+    for (auto& c : r) c = towlower(c);
+    return r;
+}
+
+void LibraryPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEventArgs^ e)
+{
+    Refresh();
+}
+
 void LibraryPage::Refresh()
 {
     if (building) return;
     auto& all = Library::Shelves();
+    std::wstring query = SearchBox->Visibility == Windows::UI::Xaml::Visibility::Visible ? Lower(SearchBox->Text) : std::wstring();
+    std::vector<Book^> order;
+    for (auto b : Library::Books())
+    {
+        if (!query.empty() && Lower(b->Title).find(query) == std::wstring::npos && Lower(b->Author).find(query) == std::wstring::npos) continue;
+        order.push_back(b);
+    }
+    int mode = sort;
+    std::stable_sort(order.begin(), order.end(), [mode](Book^ a, Book^ b)
+    {
+        if (a->Favorite != b->Favorite) return a->Favorite;
+        if (mode == 0) return a->Opened > b->Opened;
+        if (mode == 1) return Lower(a->Title) < Lower(b->Title);
+        if (mode == 2)
+        {
+            auto x = Lower(a->Author), y = Lower(b->Author);
+            if (x.empty() != y.empty()) return y.empty();
+            return x != y ? x < y : Lower(a->Title) < Lower(b->Title);
+        }
+        return false;
+    });
     for (size_t k = 0; k < views.size(); k++)
     {
         std::wstring shelf = k == 0 || k > all.size() ? std::wstring() : all[k - 1];
         auto& v = views[k];
         v.books->Clear();
-        for (int fav = 1; fav >= 0; fav--)
-            for (auto b : Library::Books())
-                if (b->Favorite == (fav == 1) && (shelf.empty() || b->InShelf(shelf))) v.books->Append(b);
+        for (auto b : order)
+            if (shelf.empty() || b->InShelf(shelf)) v.books->Append(b);
         v.empty->Text = !Library::Books()->Size ? L"Your library is empty. Use Import to add books."
+            : !query.empty() ? L"No books match your search."
             : L"This shelf is empty. Hold a book and choose Shelves to add it here.";
         v.empty->Visibility = v.books->Size ? Windows::UI::Xaml::Visibility::Collapsed : Windows::UI::Xaml::Visibility::Visible;
+    }
+    if (continueCard)
+    {
+        Book^ last = nullptr;
+        for (auto b : Library::Books())
+            if (b->Opened > 0 && b->Percent < 99.5 && (!last || b->Opened > last->Opened)) last = b;
+        continueCard->Content = last;
+        continueCard->Visibility = last && query.empty() ? Windows::UI::Xaml::Visibility::Visible : Windows::UI::Xaml::Visibility::Collapsed;
     }
     auto shelfButtons = Current().empty() ? Windows::UI::Xaml::Visibility::Collapsed : Windows::UI::Xaml::Visibility::Visible;
     RenameShelfButton->Visibility = shelfButtons;
@@ -84,6 +128,23 @@ void LibraryPage::RebuildShelves(const std::wstring& select)
         grid->IsItemClickEnabled = true;
         grid->ItemClick += ref new ItemClickEventHandler(this, &LibraryPage::OnItemClick);
         auto host = ref new Grid();
+        if (i == 0)
+        {
+            auto top = ref new RowDefinition();
+            top->Height = GridLengthHelper::Auto;
+            host->RowDefinitions->Append(top);
+            host->RowDefinitions->Append(ref new RowDefinition());
+            continueCard = ref new ContentControl();
+            continueCard->ContentTemplate = safe_cast<DataTemplate^>(Resources->Lookup("ContinueTemplate"));
+            continueCard->HorizontalContentAlignment = Windows::UI::Xaml::HorizontalAlignment::Stretch;
+            continueCard->HorizontalAlignment = Windows::UI::Xaml::HorizontalAlignment::Stretch;
+            continueCard->Margin = Thickness(4, 4, 0, 0);
+            continueCard->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
+            continueCard->Tapped += ref new TappedEventHandler(this, &LibraryPage::OnContinue);
+            host->Children->Append(continueCard);
+            Grid::SetRow(v.empty, 1);
+            Grid::SetRow(grid, 1);
+        }
         host->Children->Append(v.empty);
         host->Children->Append(grid);
         auto item = ref new PivotItem();
@@ -102,6 +163,52 @@ void LibraryPage::RebuildShelves(const std::wstring& select)
 void LibraryPage::OnNotes(Object^ sender, RoutedEventArgs^ e)
 {
     this->Frame->Navigate(TypeName(NotesPage::typeid));
+}
+
+void LibraryPage::OnContinue(Object^ sender, TappedRoutedEventArgs^ e)
+{
+    auto book = dynamic_cast<Book^>(continueCard->Content);
+    if (book) this->Frame->Navigate(ReaderFor(book), book);
+}
+
+void LibraryPage::OnSearch(Object^ sender, RoutedEventArgs^ e)
+{
+    bool show = SearchBox->Visibility != Windows::UI::Xaml::Visibility::Visible;
+    SearchBox->Visibility = show ? Windows::UI::Xaml::Visibility::Visible : Windows::UI::Xaml::Visibility::Collapsed;
+    if (show) SearchBox->Focus(Windows::UI::Xaml::FocusState::Programmatic);
+    else SearchBox->Text = "";
+    Refresh();
+}
+
+void LibraryPage::OnSearchChanged(Object^ sender, TextChangedEventArgs^ e)
+{
+    Refresh();
+}
+
+void LibraryPage::OnSearchKey(Object^ sender, KeyRoutedEventArgs^ e)
+{
+    if (e->Key == Windows::System::VirtualKey::Enter) Shelves->Focus(Windows::UI::Xaml::FocusState::Programmatic);
+}
+
+void LibraryPage::OnSort(Object^ sender, RoutedEventArgs^ e)
+{
+    auto menu = ref new MenuFlyout();
+    const wchar_t* names[] = { L"Recently read", L"Title", L"Author", L"Recently added" };
+    LibraryPage^ self = this;
+    for (int i = 0; i < 4; i++)
+    {
+        auto item = ref new ToggleMenuFlyoutItem();
+        item->Text = ref new String(names[i]);
+        item->IsChecked = i == sort;
+        item->Click += ref new RoutedEventHandler([self, i](Object^, RoutedEventArgs^)
+        {
+            self->sort = i;
+            Windows::Storage::ApplicationData::Current->LocalSettings->Values->Insert("sort", i);
+            self->Refresh();
+        });
+        menu->Items->Append(item);
+    }
+    menu->ShowAt(safe_cast<FrameworkElement^>(sender));
 }
 
 void LibraryPage::OnShelfChanged(Object^ sender, SelectionChangedEventArgs^ e)

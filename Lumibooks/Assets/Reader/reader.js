@@ -1,6 +1,6 @@
 (function () {
     var XHTML = 'http://www.w3.org/1999/xhtml';
-    var W = 0, n = 1, page = 0, frac = 0, anchor = null, offset = null, ready = false, timer = 0;
+    var W = 0, n = 1, page = 0, frac = 0, anchor = null, offset = null, query = null, found = null, note = null, ready = false, timer = 0;
     var sx = null, sy = 0, swipeAt = 0, wheelAt = 0, pressTimer = 0, quietUntil = 0;
     var cfg = { margin: 16, vmargin: 20 };
     var sents = [], spoken = -1, sel = null, tn = null, ov = null, hA = null, hB = null, drag = null, fixed = null;
@@ -32,9 +32,11 @@
         var h = decodeURIComponent(location.hash.slice(1));
         anchor = null;
         offset = null;
+        query = null;
         if (h == 'end') frac = 1;
         else if (h.indexOf('p=') == 0) frac = parseFloat(h.slice(2)) || 0;
         else if (h.indexOf('o=') == 0) offset = parseInt(h.slice(2), 10) || 0;
+        else if (h.indexOf('q=') == 0) { var c = h.indexOf(':'); query = { k: parseInt(h.slice(2, c), 10) || 0, t: h.slice(c + 1).toLowerCase() }; }
         else if (h) anchor = h;
     }
 
@@ -73,7 +75,7 @@
         document.body.style.transform = 'translateX(' + (-page * W) + 'px)';
         if (user) frac = n > 1 ? page / (n - 1) : 0;
         if (ready) send('page:' + page + '/' + n);
-        if (sel) drawSel();
+        if (sel || found || ov) drawSel();
     }
 
     function layout() {
@@ -91,8 +93,13 @@
         var el = anchor && document.getElementById(anchor);
         if (el) go(pageOf(el), true);
         else if (offset !== null) go(pageOfOffset(offset), true);
+        else if (query) {
+            found = findQuery(query);
+            if (found) go(pageOfOffset(found.s), true);
+            else go(0, true);
+        }
         else go(Math.round(frac * (n - 1)), false);
-        if (ready) { anchor = null; offset = null; }
+        if (ready) { anchor = null; offset = null; query = null; }
     }
 
     function next() { if (page < n - 1) go(page + 1, true); else send('next-chapter'); }
@@ -282,6 +289,18 @@
         }
         while (ov.firstChild) ov.removeChild(ov.firstChild);
         var f = null, z = null, r = document.createRange();
+        if (found) pieces(found.s, found.e, function (t, a, b) {
+            r.setStart(t, a);
+            r.setEnd(t, b);
+            var q = r.getClientRects();
+            for (var k = 0; k < q.length; k++) {
+                var c = q[k];
+                if (c.width < 1 || c.right < 0 || c.left > W) continue;
+                var d = el('i', 'lb-found');
+                d.style.cssText = 'left:' + c.left + 'px;top:' + c.top + 'px;width:' + c.width + 'px;height:' + c.height + 'px';
+                ov.appendChild(d);
+            }
+        });
         if (sel) pieces(sel.s, sel.e, function (t, a, b) {
             r.setStart(t, a);
             r.setEnd(t, b);
@@ -308,6 +327,99 @@
     }
 
     window.lbSelClear = function () { sel = null; drag = null; drawSel(); };
+
+    function findQuery(q) {
+        var l = nodes(), text = '';
+        l.forEach(function (x) { text += x.n.nodeValue; });
+        text = text.toLowerCase();
+        var at = -1, last = -1;
+        for (var i = 0; i <= q.k; i++) {
+            at = text.indexOf(q.t, at + 1);
+            if (at < 0) break;
+            last = at;
+        }
+        return last < 0 ? null : { s: last, e: last + q.t.length };
+    }
+
+    function closeNote() {
+        if (!note) return false;
+        note.parentNode.removeChild(note);
+        note = null;
+        send('note:0');
+        return true;
+    }
+
+    window.lbCloseNote = function () { return closeNote() ? '1' : ''; };
+
+    function isNoteLink(a) {
+        var type = (a.getAttribute('epub:type') || a.getAttributeNS('http://www.idpf.org/2007/ops', 'type') || a.getAttribute('role') || '').toLowerCase();
+        if (type.indexOf('noteref') >= 0) return true;
+        var p = a.parentNode;
+        if (p && (p.localName == 'sup' || p.localName == 'sub')) return true;
+        if (a.querySelector && a.querySelector('sup')) return true;
+        var t = (a.textContent || '').replace(/\s+/g, '');
+        return /^[\[\(]?([0-9]{1,3}|[*\u2020\u2021]+|[ivx]{1,5}|[a-z])[\]\)]?$/i.test(t);
+    }
+
+    function noteContent(target) {
+        var out = document.createDocumentFragment();
+        var src = target;
+        if (/^(a|span|sup)$/.test(target.localName)) {
+            var p = target;
+            while (p && p.parentNode && !BLOCK.test(p.localName)) p = p.parentNode;
+            src = p || target;
+        }
+        var kids = src.localName == 'body' ? [target] : [src];
+        kids.forEach(function (k) { out.appendChild(document.importNode(k, true)); });
+        var tmp = el('div');
+        tmp.appendChild(out);
+        var scripts = tmp.getElementsByTagName('script');
+        for (var i = scripts.length - 1; i >= 0; i--) scripts[i].parentNode.removeChild(scripts[i]);
+        return tmp;
+    }
+
+    function showNote(content, href) {
+        closeNote();
+        note = el('div', 'lb-note');
+        note.style.cssText = 'background:' + (cfg.bg || '#fff') + ';color:' + (cfg.fg || '#111') + ';font-size:' + (cfg.size || 100) + '%';
+        var body = el('div', 'lb-note-body');
+        body.appendChild(content);
+        var link = el('div', 'lb-note-go');
+        link.textContent = 'Go to note';
+        link.lbHref = href;
+        note.appendChild(body);
+        note.appendChild(link);
+        document.documentElement.appendChild(note);
+        send('note:1');
+    }
+
+    function openNote(a, href) {
+        var hash = href.indexOf('#');
+        if (hash < 0) return false;
+        var id = decodeURIComponent(href.slice(hash + 1)), file = href.slice(0, hash);
+        if (!file) {
+            var t = document.getElementById(id);
+            if (!t) return false;
+            showNote(noteContent(t), href);
+            return true;
+        }
+        var x = new XMLHttpRequest();
+        x.open('GET', new URL(file, location.href).href, true);
+        x.onload = function () {
+            var doc = null;
+            try { doc = new DOMParser().parseFromString(x.responseText, /\.x?html?$/i.test(file) && /^<\?xml/.test(x.responseText) ? 'application/xhtml+xml' : 'text/html'); } catch (err) { }
+            if (!doc || doc.getElementsByTagName('parsererror').length) {
+                try { doc = new DOMParser().parseFromString(x.responseText, 'text/html'); } catch (err) { doc = null; }
+            }
+            var t = doc && (doc.getElementById(id) || doc.querySelector('[name="' + id.replace(/"/g, '') + '"]'));
+            if (t && (t.textContent || '').length < 4000) showNote(noteContent(t), href);
+            else location.href = href;
+        };
+        x.onerror = function () { location.href = href; };
+        x.send();
+        return true;
+    }
+
 
     function isBlock(e) { return !e || (e.nodeType == 1 && BLOCK.test(e.localName)); }
 
@@ -339,21 +451,31 @@
             });
         });
         tn = null;
-        if (sel) drawSel();
+        if (sel || found) drawSel();
     };
 
     document.addEventListener('click', function (e) {
         if (Date.now() < quietUntil || Date.now() - swipeAt < 500 || e.target.lbH) { e.preventDefault(); return; }
-        if (sel) {
-            sel = null;
-            drawSel();
-            send('sel-clear');
+        if (note) {
+            for (var n0 = e.target; n0; n0 = n0.parentNode) {
+                if (n0.lbHref) { var target = n0.lbHref; closeNote(); e.preventDefault(); if (target.charAt(0) == '#') { var te = document.getElementById(decodeURIComponent(target.slice(1))); if (te) go(pageOf(te), true); } else location.href = target; return; }
+                if (n0 == note) { e.preventDefault(); return; }
+            }
+            closeNote();
             e.preventDefault();
             return;
+        }
+        if (sel || found) {
+            var had = !!sel;
+            sel = null;
+            found = null;
+            drawSel();
+            if (had) { send('sel-clear'); e.preventDefault(); return; }
         }
         for (var t = e.target; t && t.getAttribute; t = t.parentNode) {
             var href = t.localName == 'a' && t.getAttribute('href');
             if (href) {
+                if (isNoteLink(t) && openNote(t, href)) { e.preventDefault(); return; }
                 if (href.charAt(0) == '#') {
                     e.preventDefault();
                     var el = document.getElementById(decodeURIComponent(href.slice(1)));

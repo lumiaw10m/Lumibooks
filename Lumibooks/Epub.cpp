@@ -275,6 +275,7 @@ std::shared_ptr<Epub> Epub::Open(std::vector<uint8_t>&& data)
     {
         if (Is(el, L"title")) { if (e->title.empty()) e->title = Trim(el->InnerText); }
         else if (Is(el, L"creator")) { if (e->author.empty()) e->author = Trim(el->InnerText); }
+        else if (Is(el, L"language")) { if (e->language.empty()) e->language = Trim(el->InnerText); }
         else if (Is(el, L"meta")) { if (Attr(el, L"name") == L"cover") coverId = Attr(el, L"content"); }
         else if (Is(el, L"item"))
         {
@@ -312,4 +313,107 @@ std::shared_ptr<Epub> Epub::Open(std::vector<uint8_t>&& data)
     if (!navPath.empty()) e->ParseNav(navPath);
     if (e->toc.empty() && !ncxPath.empty()) e->ParseNcx(ncxPath);
     return e;
+}
+
+static bool StartsNoCase(const std::string& s, size_t at, const char* t)
+{
+    return _strnicmp(s.c_str() + at, t, strlen(t)) == 0;
+}
+
+static void PutUtf8(std::string& out, unsigned c)
+{
+    if (c < 0x80) out += (char)c;
+    else if (c < 0x800) { out += (char)(0xc0 | c >> 6); out += (char)(0x80 | (c & 0x3f)); }
+    else if (c < 0x10000) { out += (char)(0xe0 | c >> 12); out += (char)(0x80 | (c >> 6 & 0x3f)); out += (char)(0x80 | (c & 0x3f)); }
+    else { out += (char)(0xf0 | c >> 18); out += (char)(0x80 | (c >> 12 & 0x3f)); out += (char)(0x80 | (c >> 6 & 0x3f)); out += (char)(0x80 | (c & 0x3f)); }
+}
+
+std::wstring Lumibooks::HtmlText(const std::vector<uint8_t>& html)
+{
+    std::string s(html.begin(), html.end()), out;
+    size_t i = 0;
+    for (size_t b = 0; (b = s.find('<', b)) != std::string::npos; b++)
+        if (StartsNoCase(s, b, "<body")) { size_t g = s.find('>', b); i = g == std::string::npos ? s.size() : g + 1; break; }
+    while (i < s.size())
+    {
+        char c = s[i];
+        if (c == '<')
+        {
+            if (StartsNoCase(s, i, "<!--"))
+            {
+                size_t e = s.find("-->", i);
+                i = e == std::string::npos ? s.size() : e + 3;
+                continue;
+            }
+            const char* skip = StartsNoCase(s, i, "<script") ? "</script" : StartsNoCase(s, i, "<style") ? "</style" : nullptr;
+            if (StartsNoCase(s, i, "</body")) break;
+            size_t e = skip ? std::string::npos : s.find('>', i);
+            if (skip)
+            {
+                for (size_t j = i; (j = s.find('<', j + 1)) != std::string::npos;)
+                    if (StartsNoCase(s, j, skip)) { e = s.find('>', j); break; }
+            }
+            i = e == std::string::npos ? s.size() : e + 1;
+            continue;
+        }
+        if (c == '&')
+        {
+            size_t semi = s.find(';', i);
+            if (semi != std::string::npos && semi - i <= 10)
+            {
+                std::string name = s.substr(i + 1, semi - i - 1);
+                unsigned code = 0;
+                if (!name.empty() && name[0] == '#') code = (unsigned)strtoul(name.c_str() + (name.size() > 1 && (name[1] == 'x' || name[1] == 'X') ? 2 : 1), nullptr, name.size() > 1 && (name[1] == 'x' || name[1] == 'X') ? 16 : 10);
+                else if (name == "amp") code = '&';
+                else if (name == "lt") code = '<';
+                else if (name == "gt") code = '>';
+                else if (name == "quot") code = '"';
+                else if (name == "apos") code = '\'';
+                else if (name == "nbsp") code = 0xa0;
+                if (code)
+                {
+                    PutUtf8(out, code);
+                    i = semi + 1;
+                    continue;
+                }
+            }
+        }
+        out += c;
+        i++;
+    }
+    return Wide(out.c_str(), out.size());
+}
+
+std::vector<SearchHit> Epub::Search(const std::wstring& query, size_t max)
+{
+    std::vector<SearchHit> hits;
+    std::wstring q = query;
+    for (auto& c : q) c = towlower(c);
+    if (q.empty()) return hits;
+    for (int i = 0; i < (int)spine.size() && hits.size() < max; i++)
+    {
+        std::vector<uint8_t> data;
+        if (!Read(spine[i], data)) continue;
+        std::wstring text = HtmlText(data), low = text;
+        for (auto& c : low) c = towlower(c);
+        int k = 0;
+        for (size_t at = 0; (at = low.find(q, at)) != std::wstring::npos && hits.size() < max; at++, k++)
+        {
+            size_t a = at > 40 ? at - 40 : 0, z = std::min(text.size(), at + q.size() + 60);
+            std::wstring snip;
+            bool space = false;
+            for (size_t j = a; j < z; j++)
+            {
+                wchar_t c = text[j];
+                if (iswspace(c) || c == 0xa0) { space = !snip.empty(); continue; }
+                if (space) snip += L' ';
+                space = false;
+                snip += c;
+            }
+            if (a > 0) snip = L"…" + snip;
+            if (z < text.size()) snip += L"…";
+            hits.push_back({ i, k, snip });
+        }
+    }
+    return hits;
 }

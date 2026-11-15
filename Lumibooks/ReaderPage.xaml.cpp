@@ -37,6 +37,8 @@ static String^ Str(const std::wstring& s)
     return ref new String(s.c_str(), (unsigned int)s.size());
 }
 
+static void FillTargets(ComboBox^ box);
+
 static String^ Fmt(const wchar_t* format, ...)
 {
     wchar_t s[256];
@@ -63,9 +65,10 @@ static int TagOf(Object^ sender)
     return tag ? _wtoi(tag->Data()) : 0;
 }
 
-ReaderPage::ReaderPage() : chapter(0), page(0), pages(1), selStart(-1), selEnd(-1), editId(-1), loading(true), resumeSpeech(false)
+ReaderPage::ReaderPage() : chapter(0), page(0), pages(1), selStart(-1), selEnd(-1), editId(-1), loading(true), resumeSpeech(false), noteShown(false), searchToken(0), lookupToken(0)
 {
     InitializeComponent();
+    FillTargets(TargetBox);
     auto& s = Settings::Get();
     for (int i = 0; i < Settings::FontCount; i++) FontBox->Items->Append(ref new String(Settings::Fonts[i]));
     FontBox->SelectedIndex = s.font;
@@ -136,6 +139,16 @@ Button^ ReaderPage::Swatch(uint32_t color, bool text)
 void ReaderPage::OnNavigatedTo(NavigationEventArgs^ e)
 {
     book = safe_cast<Book^>(e->Parameter);
+    book->Opened = (double)_time64(nullptr);
+    ReaderPage^ me = this;
+    shareToken = Windows::ApplicationModel::DataTransfer::DataTransferManager::GetForCurrentView()->DataRequested +=
+        ref new TypedEventHandler<Windows::ApplicationModel::DataTransfer::DataTransferManager^, Windows::ApplicationModel::DataTransfer::DataRequestedEventArgs^>(
+            [me](Windows::ApplicationModel::DataTransfer::DataTransferManager^, Windows::ApplicationModel::DataTransfer::DataRequestedEventArgs^ args)
+    {
+        if (me->shareText.empty()) return;
+        args->Request->Data->Properties->Title = me->book->Title;
+        args->Request->Data->SetText(Str(me->shareText));
+    });
     ApplicationView::GetForCurrentView()->TryEnterFullScreenMode();
     ReaderPage^ self = this;
     Library::GetFile(book->FilePath).then([](StorageFile^ f)
@@ -168,6 +181,7 @@ void ReaderPage::OnNavigatedTo(NavigationEventArgs^ e)
 
 void ReaderPage::OnNavigatedFrom(NavigationEventArgs^ e)
 {
+    Windows::ApplicationModel::DataTransfer::DataTransferManager::GetForCurrentView()->DataRequested -= shareToken;
     if (speech) speech->Stop();
     speech = nullptr;
     ApplicationView::GetForCurrentView()->ExitFullScreenMode();
@@ -176,7 +190,13 @@ void ReaderPage::OnNavigatedFrom(NavigationEventArgs^ e)
 
 bool ReaderPage::HandleBack()
 {
-    if (IsShown(Panel)) Panel->Visibility = Shown(false);
+    if (IsShown(Lookup)) Lookup->Visibility = Shown(false);
+    else if (noteShown)
+    {
+        noteShown = false;
+        Script("lbCloseNote", "");
+    }
+    else if (IsShown(Panel)) Panel->Visibility = Shown(false);
     else if (IsShown(SelBar)) HideSelBar();
     else if (IsShown(Bar)) Bar->Visibility = Shown(false);
     else return false;
@@ -283,10 +303,12 @@ void ReaderPage::OnScriptNotify(Object^ sender, NotifyEventArgs^ e)
         pages = n;
         book->ChapterIndex = chapter;
         book->ChapterProgress = n > 1 ? (double)i / (n - 1) : 0;
+        if (epub && !epub->spine.empty()) book->Percent = std::min(100.0, (chapter + (double)(i + 1) / n) * 100.0 / epub->spine.size());
         Library::Save();
         UpdateStatus();
         UpdateBookmark();
     }
+    else if (v.compare(0, 5, L"note:") == 0) noteShown = v[5] == L'1';
     else if (v.compare(0, 4, L"sel:") == 0)
     {
         JsonObject^ o = nullptr;
@@ -766,4 +788,278 @@ void ReaderPage::OnVoiceChanged(Object^ sender, SelectionChangedEventArgs^ e)
 void ReaderPage::OnVoiceSliderChanged(Object^ sender, RangeBaseValueChangedEventArgs^ e)
 {
     VoiceSettingsChanged();
+}
+
+static const wchar_t* const Targets[][2] = {
+    { L"en", L"English" }, { L"es", L"Español" }, { L"pt", L"Português" }, { L"fr", L"Français" }, { L"de", L"Deutsch" },
+    { L"it", L"Italiano" }, { L"nl", L"Nederlands" }, { L"pl", L"Polski" }, { L"ru", L"Русский" },
+    { L"uk", L"Українська" }, { L"cs", L"Čeština" }, { L"sv", L"Svenska" },
+    { L"tr", L"Türkçe" }, { L"el", L"Ελληνικά" }, { L"ar", L"العربية" },
+    { L"zh", L"中文" }, { L"ja", L"日本語" }, { L"ko", L"한국어" }, { L"hi", L"हिन्दी" } };
+static const int TargetCount = sizeof(Targets) / sizeof(Targets[0]);
+
+static std::wstring Lang2(const std::wstring& tag)
+{
+    std::wstring r;
+    for (auto c : tag)
+    {
+        if (c == L'-' || c == L'_') break;
+        r += towlower(c);
+    }
+    return r.size() == 2 ? r : std::wstring();
+}
+
+static void FillTargets(ComboBox^ box)
+{
+    std::wstring want;
+    auto values = ApplicationData::Current->LocalSettings->Values;
+    if (values->HasKey("translateTo"))
+        if (auto s = dynamic_cast<String^>(values->Lookup("translateTo"))) want = s->Data();
+    if (want.empty()) want = Lang2(Windows::Globalization::ApplicationLanguages::Languages->GetAt(0)->Data());
+    int pick = 0;
+    for (int i = 0; i < TargetCount; i++)
+    {
+        box->Items->Append(ref new String(Targets[i][1]));
+        if (want == Targets[i][0]) pick = i;
+    }
+    box->SelectedIndex = pick;
+}
+
+void ReaderPage::OnSearchOpen(Object^ sender, RoutedEventArgs^ e)
+{
+    if (!epub) return;
+    FillPanel();
+    Bar->Visibility = Shown(false);
+    Panel->Visibility = Shown(true);
+    PanelPivot->SelectedIndex = 1;
+    SearchBox->Focus(Windows::UI::Xaml::FocusState::Programmatic);
+}
+
+void ReaderPage::OnSearchKey(Object^ sender, KeyRoutedEventArgs^ e)
+{
+    if (e->Key != Windows::System::VirtualKey::Enter || !epub) return;
+    e->Handled = true;
+    std::wstring q = SearchBox->Text->Data();
+    size_t a = q.find_first_not_of(L" \t"), z = q.find_last_not_of(L" \t");
+    if (a == std::wstring::npos) return;
+    q = q.substr(a, z - a + 1);
+    int token = ++searchToken;
+    SearchStatus->Text = L"Searching…";
+    SearchList->ItemsSource = nullptr;
+    SearchList->Focus(Windows::UI::Xaml::FocusState::Programmatic);
+    auto book = epub;
+    ReaderPage^ self = this;
+    create_task([book, q] { return book->Search(q, 300); }).then([self, token, q](std::vector<SearchHit> hits)
+    {
+        if (token != self->searchToken) return;
+        auto items = ref new Vector<NavItem^>();
+        String^ escaped = Uri::EscapeComponent(Str(q));
+        for (auto& h : hits)
+        {
+            auto item = ref new NavItem();
+            item->Title = Str(h.snippet);
+            item->Detail = Str(self->ChapterName(h.chapter));
+            item->kind = 3;
+            item->chapter = h.chapter;
+            item->target = Fmt(L"q=%d:", h.k) + escaped;
+            items->Append(item);
+        }
+        self->SearchList->ItemsSource = items;
+        if (hits.empty()) self->SearchStatus->Text = L"No results";
+        else if (hits.size() >= 300) self->SearchStatus->Text = L"300+ results";
+        else self->SearchStatus->Text = Fmt(hits.size() == 1 ? L"%d result" : L"%d results", (int)hits.size());
+    }, task_continuation_context::use_current());
+}
+
+void ReaderPage::OnShare(Object^ sender, RoutedEventArgs^ e)
+{
+    shareText = selText;
+    HideSelBar();
+    Windows::ApplicationModel::DataTransfer::DataTransferManager::ShowShareUI();
+}
+
+void ReaderPage::ShowLookup(String^ title, bool translate)
+{
+    HideSelBar();
+    LookupTitle->Text = title;
+    LookupText->Text = "";
+    LookupBusy->IsActive = true;
+    TargetBox->Visibility = Shown(translate);
+    Lookup->Visibility = Shown(true);
+}
+
+void ReaderPage::OnLookupClose(Object^ sender, RoutedEventArgs^ e)
+{
+    lookupToken++;
+    Lookup->Visibility = Shown(false);
+}
+
+static Windows::Web::Http::HttpClient^ Http()
+{
+    auto c = ref new Windows::Web::Http::HttpClient();
+    c->DefaultRequestHeaders->UserAgent->TryParseAdd("Lumibooks/1.0");
+    return c;
+}
+
+static std::wstring Plain(String^ html)
+{
+    std::string u = Utf8(html->Data());
+    std::wstring t = HtmlText(std::vector<uint8_t>(u.begin(), u.end()));
+    std::wstring o;
+    bool space = false;
+    for (auto c : t)
+    {
+        if (iswspace(c)) { space = !o.empty(); continue; }
+        if (space) o += L' ';
+        space = false;
+        o += c;
+    }
+    return o;
+}
+
+static bool Punct(wchar_t c)
+{
+    return iswspace(c) || iswpunct(c) || c == 0x201c || c == 0x201d || c == 0x2018 || c == 0x2019 || c == 0x00ab || c == 0x00bb || c == 0x2014 || c == 0x2026;
+}
+
+void ReaderPage::OnDefine(Object^ sender, RoutedEventArgs^ e)
+{
+    std::wstring w = selText;
+    while (!w.empty() && Punct(w.front())) w.erase(0, 1);
+    while (!w.empty() && Punct(w.back())) w.pop_back();
+    if (w.empty()) return;
+    ShowLookup(Str(w), false);
+    Define(w, false);
+}
+
+void ReaderPage::Define(const std::wstring& word, bool lower)
+{
+    int token = ++lookupToken;
+    std::wstring w = word;
+    if (lower) for (auto& c : w) c = towlower(c);
+    auto uri = ref new Uri("https://en.wiktionary.org/api/rest_v1/page/definition/" + Uri::EscapeComponent(Str(w)));
+    std::wstring lang = Lang2(epub ? epub->language : std::wstring());
+    ReaderPage^ self = this;
+    create_task(Http()->GetAsync(uri)).then([](Windows::Web::Http::HttpResponseMessage^ r)
+    {
+        if (!r->IsSuccessStatusCode) return task_from_result<String^>(nullptr);
+        return create_task(r->Content->ReadAsStringAsync());
+    }).then([self, token, word, lower, lang](task<String^> t)
+    {
+        if (token != self->lookupToken) return;
+        String^ json = nullptr;
+        try { json = t.get(); }
+        catch (Exception^)
+        {
+            self->LookupBusy->IsActive = false;
+            self->LookupText->Text = L"Could not reach Wiktionary. Check the connection.";
+            return;
+        }
+        JsonObject^ root = nullptr;
+        if (!json || !JsonObject::TryParse(json, &root) || !root->Size)
+        {
+            std::wstring low = word;
+            for (auto& c : low) c = towlower(c);
+            if (!lower && low != word) { self->Define(word, true); return; }
+            self->LookupBusy->IsActive = false;
+            self->LookupText->Text = L"No definition found.";
+            return;
+        }
+        std::vector<String^> keys;
+        if (!lang.empty() && root->HasKey(Str(lang))) keys.push_back(Str(lang));
+        if (lang != L"en" && root->HasKey("en")) keys.push_back("en");
+        for (auto kv : root)
+            if (String::CompareOrdinal(kv->Key, Str(lang)) != 0 && String::CompareOrdinal(kv->Key, "en") != 0) keys.push_back(kv->Key);
+        std::wstring out;
+        int groups = 0;
+        for (auto k : keys)
+        {
+            if (groups >= 3) break;
+            auto v = root->GetNamedValue(k);
+            if (v->ValueType != JsonValueType::Array) continue;
+            auto arr = v->GetArray();
+            for (unsigned i = 0; i < arr->Size && i < 4; i++)
+            {
+                if (arr->GetAt(i)->ValueType != JsonValueType::Object) continue;
+                auto entry = arr->GetObjectAt(i);
+                std::wstring head = entry->GetNamedString("language", "")->Data();
+                std::wstring pos = entry->GetNamedString("partOfSpeech", "")->Data();
+                auto defs = entry->GetNamedArray("definitions", ref new JsonArray());
+                std::wstring body;
+                int n = 0;
+                for (unsigned j = 0; j < defs->Size && n < 5; j++)
+                {
+                    if (defs->GetAt(j)->ValueType != JsonValueType::Object) continue;
+                    auto d = Plain(defs->GetObjectAt(j)->GetNamedString("definition", ""));
+                    if (d.empty()) continue;
+                    wchar_t num[8];
+                    swprintf_s(num, L"%d. ", ++n);
+                    body += num + d + L"\n";
+                }
+                if (body.empty()) continue;
+                if (!out.empty()) out += L"\n";
+                out += head + (pos.empty() ? std::wstring() : L" · " + pos) + L"\n" + body;
+            }
+            groups++;
+        }
+        self->LookupBusy->IsActive = false;
+        if (out.empty()) self->LookupText->Text = L"No definition found.";
+        else self->LookupText->Text = Str(out + L"\nSource: Wiktionary");
+    }, task_continuation_context::use_current());
+}
+
+void ReaderPage::OnTranslate(Object^ sender, RoutedEventArgs^ e)
+{
+    shareText = selText;
+    if (shareText.empty()) return;
+    ShowLookup("Translation", true);
+    Translate();
+}
+
+void ReaderPage::OnTargetChanged(Object^ sender, SelectionChangedEventArgs^ e)
+{
+    int i = TargetBox->SelectedIndex;
+    if (i < 0) return;
+    ApplicationData::Current->LocalSettings->Values->Insert("translateTo", ref new String(Targets[i][0]));
+    if (IsShown(Lookup) && IsShown(TargetBox)) Translate();
+}
+
+void ReaderPage::Translate()
+{
+    int i = TargetBox->SelectedIndex;
+    if (i < 0 || shareText.empty()) return;
+    int token = ++lookupToken;
+    std::wstring target = Targets[i][0], source = Lang2(epub ? epub->language : std::wstring());
+    LookupBusy->IsActive = true;
+    LookupText->Text = "";
+    if (source == target)
+    {
+        LookupBusy->IsActive = false;
+        LookupText->Text = L"This book is already in that language. Pick another one above.";
+        return;
+    }
+    std::wstring text = shareText.size() > 480 ? shareText.substr(0, 480) : shareText;
+    String^ from = source.empty() ? ref new String(L"Autodetect") : Str(source);
+    auto uri = ref new Uri("https://api.mymemory.translated.net/get?q=" + Uri::EscapeComponent(Str(text)) + "&langpair=" + from + "%7C" + Str(target));
+    ReaderPage^ self = this;
+    create_task(Http()->GetStringAsync(uri)).then([self, token](task<String^> t)
+    {
+        if (token != self->lookupToken) return;
+        self->LookupBusy->IsActive = false;
+        String^ json = nullptr;
+        try { json = t.get(); }
+        catch (Exception^)
+        {
+            self->LookupText->Text = L"Could not reach the translation service. Check the connection.";
+            return;
+        }
+        JsonObject^ root = nullptr;
+        String^ result = nullptr;
+        if (json && JsonObject::TryParse(json, &root) && root->HasKey("responseData") && root->GetNamedValue("responseData")->ValueType == JsonValueType::Object)
+            result = root->GetNamedObject("responseData")->GetNamedString("translatedText", "");
+        std::wstring r = result ? result->Data() : L"";
+        bool bad = r.empty() || r.find(L"INVALID") != std::wstring::npos || r.find(L"MYMEMORY WARNING") != std::wstring::npos;
+        if (bad) self->LookupText->Text = L"The translation is not available right now.";
+        else self->LookupText->Text = Str(Plain(result) + L"\n\nSource: MyMemory");
+    }, task_continuation_context::use_current());
 }

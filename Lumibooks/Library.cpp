@@ -96,6 +96,8 @@ task<void> Library::Load()
             b->ChapterIndex = (int)o->GetNamedNumber("chapter", 0);
             b->ChapterProgress = o->GetNamedNumber("progress", 0);
             b->Favorite = o->GetNamedBoolean("fav", false);
+            b->Percent = o->GetNamedNumber("pct", 0);
+            b->Opened = o->GetNamedNumber("opened", 0);
             auto sh = o->GetNamedArray("shelves", ref new JsonArray());
             for (unsigned int j = 0; j < sh->Size; j++)
                 if (sh->GetAt(j)->ValueType == JsonValueType::String) b->shelves.push_back(sh->GetStringAt(j)->Data());
@@ -121,6 +123,8 @@ void Library::Save()
         o->Insert("chapter", JsonValue::CreateNumberValue(b->ChapterIndex));
         o->Insert("progress", JsonValue::CreateNumberValue(b->ChapterProgress));
         if (b->Favorite) o->Insert("fav", JsonValue::CreateBooleanValue(true));
+        if (b->Percent > 0) o->Insert("pct", JsonValue::CreateNumberValue(b->Percent));
+        if (b->Opened > 0) o->Insert("opened", JsonValue::CreateNumberValue(b->Opened));
         if (!b->shelves.empty())
         {
             auto sh = ref new JsonArray();

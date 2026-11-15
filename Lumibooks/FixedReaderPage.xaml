@@ -51,6 +51,7 @@
                 <AppBarButton Label="Contents" Click="OnContents">
                     <AppBarButton.Icon><FontIcon Glyph="&#xE8FD;" /></AppBarButton.Icon>
                 </AppBarButton>
+                <AppBarButton x:Name="SearchButton" Icon="Find" Label="Search" Click="OnSearchOpen" />
                 <AppBarToggleButton x:Name="MarkButton" Label="Bookmark" Click="OnBookmark">
                     <AppBarToggleButton.Icon><FontIcon Glyph="&#xE8A4;" /></AppBarToggleButton.Icon>
                 </AppBarToggleButton>
@@ -58,11 +59,32 @@
         </StackPanel>
 
         <Grid x:Name="Panel" Visibility="Collapsed" Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
-            <Pivot>
+            <Pivot x:Name="PanelPivot">
                 <PivotItem Header="Contents">
                     <Grid>
                         <TextBlock x:Name="NoToc" Text="This document has no table of contents." Opacity="0.7" TextWrapping="Wrap" Margin="0,12" Visibility="Collapsed" />
                         <ListView x:Name="TocList" SelectionMode="None" IsItemClickEnabled="True" ItemClick="OnEntryClick" ItemTemplate="{StaticResource EntryTemplate}" />
+                    </Grid>
+                </PivotItem>
+                <PivotItem x:Name="SearchItem" Header="Search">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+                        <TextBox x:Name="SearchBox" PlaceholderText="Search this document" InputScope="Search" KeyDown="OnSearchKey" Margin="0,4,0,8" />
+                        <TextBlock x:Name="SearchStatus" Grid.Row="1" Opacity="0.7" Style="{StaticResource CaptionTextBlockStyle}" Margin="0,0,0,4" />
+                        <ListView x:Name="SearchList" Grid.Row="2" SelectionMode="None" IsItemClickEnabled="True" ItemClick="OnEntryClick">
+                            <ListView.ItemTemplate>
+                                <DataTemplate x:DataType="local:NavItem">
+                                    <StackPanel Margin="0,8">
+                                        <TextBlock Text="{x:Bind Title}" TextWrapping="Wrap" MaxLines="3" TextTrimming="CharacterEllipsis" />
+                                        <TextBlock Text="{x:Bind Detail}" Style="{StaticResource CaptionTextBlockStyle}" Opacity="0.7" />
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ListView.ItemTemplate>
+                        </ListView>
                     </Grid>
                 </PivotItem>
                 <PivotItem Header="Bookmarks">

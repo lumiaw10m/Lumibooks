@@ -13,6 +13,21 @@ namespace Lumibooks
         property int ChapterIndex;
         property double ChapterProgress;
         property bool Favorite;
+        property double Percent;
+        property double Opened;
+        property Windows::UI::Xaml::Visibility ProgressVisibility
+        {
+            Windows::UI::Xaml::Visibility get() { return Percent > 0 ? Windows::UI::Xaml::Visibility::Visible : Windows::UI::Xaml::Visibility::Collapsed; }
+        }
+        property Platform::String^ PercentText
+        {
+            Platform::String^ get()
+            {
+                wchar_t s[16];
+                swprintf_s(s, L"%d%%", (int)(Percent + 0.5));
+                return Percent > 0 ? ref new Platform::String(s) : nullptr;
+            }
+        }
         property Windows::UI::Xaml::Media::ImageSource^ Cover { Windows::UI::Xaml::Media::ImageSource^ get(); }
         property Windows::UI::Xaml::Visibility FavoriteVisibility
         {

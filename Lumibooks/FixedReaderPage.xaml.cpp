@@ -45,7 +45,14 @@ FixedReaderPage::FixedReaderPage() : fitW(0), fitH(0), ready(false)
 void FixedReaderPage::OnNavigatedTo(NavigationEventArgs^ e)
 {
     book = safe_cast<Book^>(e->Parameter);
+    book->Opened = (double)_time64(nullptr);
     ApplicationView::GetForCurrentView()->TryEnterFullScreenMode();
+    if (FormatOf(book->FilePath->Data()) == Format::Cbz)
+    {
+        SearchButton->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
+        unsigned int at;
+        if (PanelPivot->Items->IndexOf(SearchItem, &at)) PanelPivot->Items->RemoveAt(at);
+    }
     FixedReaderPage^ self = this;
     Library::GetFile(book->FilePath).then([](StorageFile^ f)
     {
@@ -79,6 +86,8 @@ void FixedReaderPage::OnNavigatedTo(NavigationEventArgs^ e)
             self->ready = true;
             if (self->Pages->SelectedIndex == start) self->Show(start);
             else self->Pages->SelectedIndex = start;
+            self->book->Percent = (start + 1) * 100.0 / d->Pages();
+            Library::Save();
             self->UpdateStatus();
             self->UpdateBookmark();
         }, task_continuation_context::use_current());
@@ -88,6 +97,11 @@ void FixedReaderPage::OnNavigatedTo(NavigationEventArgs^ e)
 bool FixedReaderPage::HandleBack()
 {
     if (Panel->Visibility == Windows::UI::Xaml::Visibility::Visible) Panel->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
+    else if (!mark.empty())
+    {
+        mark.clear();
+        Show(Pages->SelectedIndex);
+    }
     else if (Bar->Visibility == Windows::UI::Xaml::Visibility::Visible) Bar->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
     else return false;
     return true;
@@ -187,6 +201,50 @@ void FixedReaderPage::OnContents(Object^ sender, RoutedEventArgs^ e)
     Panel->Visibility = Windows::UI::Xaml::Visibility::Visible;
 }
 
+void FixedReaderPage::OnSearchOpen(Object^ sender, RoutedEventArgs^ e)
+{
+    OnContents(sender, e);
+    PanelPivot->SelectedItem = SearchItem;
+    SearchBox->Focus(Windows::UI::Xaml::FocusState::Programmatic);
+}
+
+void FixedReaderPage::OnSearchKey(Object^ sender, KeyRoutedEventArgs^ e)
+{
+    if (e->Key != Windows::System::VirtualKey::Enter || !doc) return;
+    e->Handled = true;
+    std::wstring q = SearchBox->Text->Data();
+    size_t a = q.find_first_not_of(L" 	"), z = q.find_last_not_of(L" 	");
+    if (a == std::wstring::npos) return;
+    q = q.substr(a, z - a + 1);
+    if (searchCancel) *searchCancel = true;
+    searchCancel = std::make_shared<bool>(false);
+    auto cancel = searchCancel;
+    int token = ++searchToken;
+    SearchStatus->Text = "Searching...";
+    SearchList->ItemsSource = nullptr;
+    SearchList->Focus(Windows::UI::Xaml::FocusState::Programmatic);
+    auto d = doc;
+    FixedReaderPage^ self = this;
+    std::string utf8 = Utf8(q.c_str());
+    create_task([d, q, cancel] { return d->Search(q, 300, cancel.get()); }).then([self, token, utf8](std::vector<SearchHit> hits)
+    {
+        if (token != self->searchToken) return;
+        auto items = ref new Vector<NavItem^>();
+        for (auto& h : hits)
+        {
+            auto item = ref new NavItem();
+            item->Title = ref new String(h.snippet.c_str());
+            item->Detail = "Page " + Num(h.chapter + 1);
+            item->kind = 3;
+            item->chapter = h.chapter;
+            items->Append(item);
+        }
+        self->SearchList->ItemsSource = items;
+        self->SearchStatus->Text = hits.empty() ? "No results" : hits.size() >= 300 ? "300+ results" : Num((int)hits.size()) + (hits.size() == 1 ? " result" : " results");
+        self->mark = hits.empty() ? std::string() : utf8;
+    }, task_continuation_context::use_current());
+}
+
 void FixedReaderPage::OnEntryClick(Object^ sender, ItemClickEventArgs^ e)
 {
     auto item = dynamic_cast<NavItem^>(e->ClickedItem);
@@ -266,16 +324,17 @@ void FixedReaderPage::Render(PageView^ v, float zoom)
         float big = std::max(w, h) * scale;
         if (big > 4096) scale *= 4096 / big;
     }
-    if (v->Image && std::abs(v->scale - scale) < 0.01f) return;
+    if (v->Image && std::abs(v->scale - scale) < 0.01f && v->mark == mark) return;
     int token = ++v->pending;
     auto d = doc;
     int index = v->index;
-    create_task([d, index, scale]
+    std::string m = mark;
+    create_task([d, index, scale, m]
     {
         auto r = std::make_shared<Rendered>();
-        r->ok = d->Render(index, scale, r->px, r->w, r->h);
+        r->ok = d->Render(index, scale, m, r->px, r->w, r->h);
         return r;
-    }).then([v, token, scale](std::shared_ptr<Rendered> r)
+    }).then([v, token, scale, m](std::shared_ptr<Rendered> r)
     {
         if (token != v->pending || !r->ok || r->w <= 0 || r->h <= 0) return;
         auto bmp = ref new WriteableBitmap(r->w, r->h);
@@ -290,6 +349,7 @@ void FixedReaderPage::Render(PageView^ v, float zoom)
         }
         bmp->Invalidate();
         v->scale = scale;
+        v->mark = m;
         v->Image = bmp;
     }, task_continuation_context::use_current());
 }
@@ -300,7 +360,7 @@ void FixedReaderPage::Show(int page)
     {
         if (std::abs(v->index - page) <= 1)
         {
-            if (!v->Image || v->scale <= 0) Render(v, 1);
+            if (!v->Image || v->scale <= 0 || v->mark != mark) Render(v, 1);
         }
         else if (v->Image || v->pending)
         {
@@ -326,6 +386,7 @@ void FixedReaderPage::OnPageChanged(Object^ sender, SelectionChangedEventArgs^ e
     Show(i);
     book->ChapterIndex = i;
     book->ChapterProgress = doc->Pages() > 1 ? (double)i / (doc->Pages() - 1) : 0;
+    book->Percent = (i + 1) * 100.0 / doc->Pages();
     Library::Save();
     UpdateStatus();
     UpdateBookmark();

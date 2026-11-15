@@ -27,7 +27,9 @@ namespace Lumibooks
         static std::shared_ptr<FixedDoc> Open(std::vector<uint8_t>&& data, Format f, bool* locked = nullptr);
         int Pages() const { return pages; }
         bool Size(int page, float& w, float& h);
-        bool Render(int page, float scale, std::vector<uint8_t>& bgra, int& w, int& h);
+        bool Render(int page, float scale, const std::string& mark, std::vector<uint8_t>& bgra, int& w, int& h);
+        std::wstring PageText(int page);
+        std::vector<SearchHit> Search(const std::wstring& query, size_t max, const bool* cancel);
         bool Cover(int width, std::vector<uint8_t>& png);
 
         std::wstring title, author;

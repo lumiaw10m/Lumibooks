@@ -49,7 +49,22 @@ namespace Lumibooks
         Annotations notes;
         int chapter, page, pages, selStart, selEnd, editId;
         std::wstring selText;
-        bool loading, resumeSpeech;
+        bool loading, resumeSpeech, noteShown;
+        int searchToken, lookupToken;
+        std::wstring shareText;
+        Windows::Foundation::EventRegistrationToken shareToken;
+
+        void ShowLookup(Platform::String^ title, bool translate);
+        void Define(const std::wstring& word, bool lower);
+        void Translate();
+        void SaveProgress();
+        void OnSearchOpen(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
+        void OnSearchKey(Platform::Object^ sender, Windows::UI::Xaml::Input::KeyRoutedEventArgs^ e);
+        void OnShare(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
+        void OnDefine(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
+        void OnTranslate(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
+        void OnTargetChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::SelectionChangedEventArgs^ e);
+        void OnLookupClose(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
 
         void Open(int index, Platform::String^ fragment);
         void UpdateStatus();

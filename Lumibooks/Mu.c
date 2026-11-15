@@ -91,7 +91,29 @@ int mu_page_size(mu_doc* d, int page, float* w, float* h)
     return ok;
 }
 
-static fz_pixmap* draw(mu_doc* d, int page, float scale, int alpha)
+static void tint(fz_context* ctx, fz_pixmap* pix, fz_page* p, fz_matrix m, const char* mark)
+{
+    fz_quad quads[64];
+    int i, n = fz_search_page(ctx, p, mark, NULL, quads, 64);
+    int pw = fz_pixmap_width(ctx, pix), ph = fz_pixmap_height(ctx, pix), px = fz_pixmap_x(ctx, pix), py = fz_pixmap_y(ctx, pix);
+    int stride = (int)fz_pixmap_stride(ctx, pix);
+    unsigned char* s = fz_pixmap_samples(ctx, pix);
+    for (i = 0; i < n; i++)
+    {
+        fz_irect r = fz_round_rect(fz_transform_rect(fz_rect_from_quad(quads[i]), m));
+        int x, y;
+        for (y = r.y0 < py ? py : r.y0; y < r.y1 && y < py + ph; y++)
+            for (x = r.x0 < px ? px : r.x0; x < r.x1 && x < px + pw; x++)
+            {
+                unsigned char* q = s + (size_t)(y - py) * stride + (size_t)(x - px) * 4;
+                q[0] = (unsigned char)(q[0] * 0.55);
+                q[1] = (unsigned char)(q[1] * 0.55 + 190 * 0.45);
+                q[2] = (unsigned char)(q[2] * 0.55 + 255 * 0.45);
+            }
+    }
+}
+
+static fz_pixmap* draw(mu_doc* d, int page, float scale, int alpha, const char* mark)
 {
     fz_context* ctx = d->ctx;
     fz_page* p = NULL;
@@ -111,6 +133,7 @@ static fz_pixmap* draw(mu_doc* d, int page, float scale, int alpha)
         dev = fz_new_draw_device(ctx, fz_identity, pix);
         fz_run_page(ctx, p, dev, m, NULL);
         fz_close_device(ctx, dev);
+        if (mark && *mark && alpha) tint(ctx, pix, p, m, mark);
     }
     fz_always(ctx)
     {
@@ -125,9 +148,9 @@ static fz_pixmap* draw(mu_doc* d, int page, float scale, int alpha)
     return pix;
 }
 
-unsigned char* mu_render(mu_doc* d, int page, float scale, int* w, int* h)
+unsigned char* mu_render(mu_doc* d, int page, float scale, const char* mark, int* w, int* h)
 {
-    fz_pixmap* pix = draw(d, page, scale, 1);
+    fz_pixmap* pix = draw(d, page, scale, 1, mark);
     unsigned char *out, *src;
     int y, stride;
     if (!pix) return NULL;
@@ -149,7 +172,7 @@ unsigned char* mu_render_png(mu_doc* d, int page, int width, size_t* len)
     fz_buffer* png = NULL;
     unsigned char* out = NULL;
     if (!mu_page_size(d, page, &w, &h) || w <= 0) return NULL;
-    pix = draw(d, page, width / w, 0);
+    pix = draw(d, page, width / w, 0, NULL);
     if (!pix) return NULL;
     fz_try(d->ctx)
     {
@@ -165,6 +188,41 @@ unsigned char* mu_render_png(mu_doc* d, int page, int width, size_t* len)
         fz_drop_pixmap(d->ctx, pix);
     }
     fz_catch(d->ctx) out = NULL;
+    return out;
+}
+
+char* mu_page_text(mu_doc* d, int page)
+{
+    fz_context* ctx = d->ctx;
+    fz_page* p = NULL;
+    fz_stext_page* st = NULL;
+    fz_buffer* buf = NULL;
+    char* out = NULL;
+    fz_var(p);
+    fz_var(st);
+    fz_var(buf);
+    fz_try(ctx)
+    {
+        unsigned char* data;
+        size_t n;
+        p = fz_load_page(ctx, d->doc, page);
+        st = fz_new_stext_page_from_page(ctx, p, NULL);
+        buf = fz_new_buffer_from_stext_page(ctx, st);
+        n = fz_buffer_storage(ctx, buf, &data);
+        out = malloc(n + 1);
+        if (out)
+        {
+            memcpy(out, data, n);
+            out[n] = 0;
+        }
+    }
+    fz_always(ctx)
+    {
+        fz_drop_buffer(ctx, buf);
+        fz_drop_stext_page(ctx, st);
+        fz_drop_page(ctx, p);
+    }
+    fz_catch(ctx) out = NULL;
     return out;
 }
 

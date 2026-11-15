@@ -6,7 +6,7 @@
   xmlns:uap3="http://schemas.microsoft.com/appx/manifest/uap/windows10/3"
   IgnorableNamespaces="uap mp uap3">
 
-  <Identity Name="Lumibooks" Publisher="CN=lumiaw10m" Version="1.0.15.0" />
+  <Identity Name="Lumibooks" Publisher="CN=lumiaw10m" Version="1.0.17.0" />
 
   <mp:PhoneIdentity PhoneProductId="ffe8b30d-de06-4cbd-ae40-9a2a32883337" PhonePublisherId="00000000-0000-0000-0000-000000000000" />
 
@@ -95,6 +95,7 @@
   </Applications>
 
   <Capabilities>
+    <Capability Name="internetClient" />
     <uap3:Capability Name="backgroundMediaPlayback" />
   </Capabilities>
 </Package>

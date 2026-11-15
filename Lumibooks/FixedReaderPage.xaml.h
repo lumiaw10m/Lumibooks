@@ -24,6 +24,7 @@ namespace Lumibooks
         int index = 0;
         float scale = 0;
         int pending = 0;
+        std::string mark;
 
     private:
         Windows::UI::Xaml::Media::ImageSource^ image;
@@ -46,6 +47,9 @@ namespace Lumibooks
         float fitW, fitH;
         bool ready;
         Annotations notes;
+        std::string mark;
+        int searchToken = 0;
+        std::shared_ptr<bool> searchCancel;
 
         void Show(int page);
         std::wstring SectionOf(int page);
@@ -55,6 +59,8 @@ namespace Lumibooks
         void SaveNotes();
         void ShowDeleteMenu(Windows::UI::Xaml::FrameworkElement^ target);
         void OnContents(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
+        void OnSearchOpen(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
+        void OnSearchKey(Platform::Object^ sender, Windows::UI::Xaml::Input::KeyRoutedEventArgs^ e);
         void OnBookmark(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
         void OnEntryClick(Platform::Object^ sender, Windows::UI::Xaml::Controls::ItemClickEventArgs^ e);
         void OnMarkHolding(Platform::Object^ sender, Windows::UI::Xaml::Input::HoldingRoutedEventArgs^ e);

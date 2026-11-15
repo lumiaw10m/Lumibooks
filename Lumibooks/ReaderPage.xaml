@@ -21,6 +21,12 @@
             <Setter Property="Margin" Value="0,0,2,0" />
             <Setter Property="Background" Value="Transparent" />
         </Style>
+        <Style x:Key="ActionButton" TargetType="Button">
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="Padding" Value="0,6" />
+            <Setter Property="Margin" Value="2,0" />
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
         <Style x:Key="ThemeButton" TargetType="Button">
             <Setter Property="Content" Value="Aa" />
             <Setter Property="Width" Value="48" />
@@ -115,6 +121,7 @@
                 </AppBarButton>
                 <AppBarButton x:Name="SpeakButton" Icon="Play" Label="Read aloud" Click="OnSpeak" />
                 <CommandBar.SecondaryCommands>
+                    <AppBarButton Label="Search in book" Click="OnSearchOpen" />
                     <AppBarButton Label="Previous chapter" Click="OnPrevChapter" />
                     <AppBarButton Label="Next chapter" Click="OnNextChapter" />
                 </CommandBar.SecondaryCommands>
@@ -124,22 +131,76 @@
         <StackPanel x:Name="SelBar" VerticalAlignment="Bottom" Visibility="Collapsed" Background="{ThemeResource SystemControlBackgroundChromeMediumBrush}">
             <TextBlock x:Name="SelText" Margin="12,8,12,0" MaxLines="2" TextWrapping="Wrap" TextTrimming="CharacterEllipsis" Style="{StaticResource CaptionTextBlockStyle}" />
             <TextBlock x:Name="SelNote" Margin="12,4,12,0" MaxLines="3" TextWrapping="Wrap" TextTrimming="CharacterEllipsis" FontStyle="Italic" Visibility="Collapsed" />
-            <StackPanel Orientation="Horizontal" Margin="12,8,12,8">
+            <StackPanel Orientation="Horizontal" Margin="12,8,12,0">
                 <Button Tag="1" Style="{StaticResource IconButton}" Click="OnHighlightColor"><Ellipse Width="24" Height="24" Fill="#ffd600" /></Button>
                 <Button Tag="2" Style="{StaticResource IconButton}" Click="OnHighlightColor"><Ellipse Width="24" Height="24" Fill="#6ed26e" /></Button>
                 <Button Tag="3" Style="{StaticResource IconButton}" Click="OnHighlightColor"><Ellipse Width="24" Height="24" Fill="#5aaaff" /></Button>
                 <Button Tag="4" Style="{StaticResource IconButton}" Click="OnHighlightColor"><Ellipse Width="24" Height="24" Fill="#ff78aa" /></Button>
                 <Button Style="{StaticResource IconButton}" Click="OnNote"><FontIcon Glyph="&#xE70B;" /></Button>
-                <Button Style="{StaticResource IconButton}" Click="OnCopy"><FontIcon Glyph="&#xE8C8;" /></Button>
                 <Button x:Name="DeleteButton" Style="{StaticResource IconButton}" Click="OnDeleteHighlight"><FontIcon Glyph="&#xE74D;" /></Button>
                 <Button Style="{StaticResource IconButton}" Click="OnSelClose"><FontIcon Glyph="&#xE711;" /></Button>
             </StackPanel>
+            <Grid x:Name="ActionRow" Margin="8,0,8,6">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Button Style="{StaticResource ActionButton}" Click="OnCopy">
+                    <StackPanel><FontIcon Glyph="&#xE8C8;" FontSize="18" /><TextBlock Text="Copy" Style="{StaticResource CaptionTextBlockStyle}" HorizontalAlignment="Center" /></StackPanel>
+                </Button>
+                <Button Grid.Column="1" Style="{StaticResource ActionButton}" Click="OnShare">
+                    <StackPanel><FontIcon Glyph="&#xE72D;" FontSize="18" /><TextBlock Text="Share" Style="{StaticResource CaptionTextBlockStyle}" HorizontalAlignment="Center" /></StackPanel>
+                </Button>
+                <Button Grid.Column="2" Style="{StaticResource ActionButton}" Click="OnDefine">
+                    <StackPanel><FontIcon Glyph="&#xE82D;" FontSize="18" /><TextBlock Text="Define" Style="{StaticResource CaptionTextBlockStyle}" HorizontalAlignment="Center" /></StackPanel>
+                </Button>
+                <Button Grid.Column="3" Style="{StaticResource ActionButton}" Click="OnTranslate">
+                    <StackPanel><FontIcon Glyph="&#xE8C1;" FontSize="18" /><TextBlock Text="Translate" Style="{StaticResource CaptionTextBlockStyle}" HorizontalAlignment="Center" /></StackPanel>
+                </Button>
+            </Grid>
         </StackPanel>
 
+        <Grid x:Name="Lookup" VerticalAlignment="Bottom" MaxHeight="420" Visibility="Collapsed" Background="{ThemeResource SystemControlBackgroundChromeMediumBrush}">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+            <Grid Margin="12,8,4,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBlock x:Name="LookupTitle" Style="{StaticResource SubtitleTextBlockStyle}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                <ComboBox x:Name="TargetBox" Grid.Column="1" MinWidth="110" Margin="8,0" Visibility="Collapsed" SelectionChanged="OnTargetChanged" />
+                <Button Grid.Column="2" Style="{StaticResource IconButton}" Click="OnLookupClose"><FontIcon Glyph="&#xE711;" /></Button>
+            </Grid>
+            <ScrollViewer Grid.Row="1" Margin="12,4,12,12" VerticalScrollBarVisibility="Auto">
+                <StackPanel>
+                    <ProgressRing x:Name="LookupBusy" IsActive="False" Width="32" Height="32" Margin="0,12" HorizontalAlignment="Left" />
+                    <TextBlock x:Name="LookupText" TextWrapping="Wrap" IsTextSelectionEnabled="True" />
+                </StackPanel>
+            </ScrollViewer>
+        </Grid>
+
         <Grid x:Name="Panel" Visibility="Collapsed" Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
-            <Pivot>
+            <Pivot x:Name="PanelPivot">
                 <PivotItem Header="Contents">
                     <ListView x:Name="TocList" SelectionMode="None" IsItemClickEnabled="True" ItemClick="OnNavItemClick" ItemTemplate="{StaticResource TocTemplate}" />
+                </PivotItem>
+                <PivotItem Header="Search">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+                        <TextBox x:Name="SearchBox" PlaceholderText="Search this book" InputScope="Search" KeyDown="OnSearchKey" Margin="0,4,0,8" />
+                        <TextBlock x:Name="SearchStatus" Grid.Row="1" Opacity="0.7" Style="{StaticResource CaptionTextBlockStyle}" Margin="0,0,0,4" />
+                        <ListView x:Name="SearchList" Grid.Row="2" SelectionMode="None" IsItemClickEnabled="True" ItemClick="OnNavItemClick" ItemTemplate="{StaticResource NoteTemplate}" />
+                    </Grid>
                 </PivotItem>
                 <PivotItem Header="Bookmarks">
                     <ListView x:Name="MarkList" SelectionMode="None" IsItemClickEnabled="True" ItemClick="OnNavItemClick" ItemTemplate="{StaticResource NoteTemplate}"

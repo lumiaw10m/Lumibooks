@@ -9,6 +9,9 @@ namespace Lumibooks
     public:
         LibraryPage();
 
+    protected:
+        virtual void OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEventArgs^ e) override;
+
     private:
         struct ShelfView
         {
@@ -16,7 +19,9 @@ namespace Lumibooks
             Windows::UI::Xaml::Controls::TextBlock^ empty;
         };
         std::vector<ShelfView> views;
+        Windows::UI::Xaml::Controls::ContentControl^ continueCard;
         bool building;
+        int sort;
         std::wstring Current();
         void Refresh();
         void RebuildShelves(const std::wstring& select);
@@ -25,6 +30,11 @@ namespace Lumibooks
         void OnItemClick(Platform::Object^ sender, Windows::UI::Xaml::Controls::ItemClickEventArgs^ e);
         void OnImport(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
         void OnNotes(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
+        void OnSearch(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
+        void OnSearchChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::TextChangedEventArgs^ e);
+        void OnSearchKey(Platform::Object^ sender, Windows::UI::Xaml::Input::KeyRoutedEventArgs^ e);
+        void OnSort(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
+        void OnContinue(Platform::Object^ sender, Windows::UI::Xaml::Input::TappedRoutedEventArgs^ e);
         void OnNewShelf(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
         void OnRenameShelf(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
         void OnDeleteShelf(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
