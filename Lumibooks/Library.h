@@ -15,6 +15,10 @@ namespace Lumibooks
         property bool Favorite;
         property double Percent;
         property double Opened;
+        property Windows::UI::Xaml::Visibility NoCoverVisibility
+        {
+            Windows::UI::Xaml::Visibility get() { return CoverPath && !CoverPath->IsEmpty() ? Windows::UI::Xaml::Visibility::Collapsed : Windows::UI::Xaml::Visibility::Visible; }
+        }
         property Windows::UI::Xaml::Visibility ProgressVisibility
         {
             Windows::UI::Xaml::Visibility get() { return Percent > 0 ? Windows::UI::Xaml::Visibility::Visible : Windows::UI::Xaml::Visibility::Collapsed; }

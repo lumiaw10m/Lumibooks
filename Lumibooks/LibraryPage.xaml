@@ -13,16 +13,18 @@
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
-                <Border Background="{ThemeResource SystemControlBackgroundBaseLowBrush}">
+                <Border Background="{ThemeResource SystemControlBackgroundBaseLowBrush}" Visibility="{x:Bind NoCoverVisibility}">
                     <TextBlock Text="{x:Bind Title}" TextWrapping="Wrap" FontSize="13" Margin="8" />
                 </Border>
-                <Image Source="{x:Bind Cover}" Stretch="UniformToFill" />
-                <Border Visibility="{x:Bind FavoriteVisibility}" HorizontalAlignment="Right" VerticalAlignment="Top"
-                        Background="#99000000" Padding="4" Margin="0,4,4,0">
-                    <FontIcon Glyph="&#xE735;" FontSize="14" Foreground="#ffd600" />
-                </Border>
-                <ProgressBar Value="{x:Bind Percent}" Maximum="100" VerticalAlignment="Bottom" MinHeight="4" Height="4"
-                             Background="#99000000" Foreground="{ThemeResource SystemControlBackgroundAccentBrush}" Visibility="{x:Bind ProgressVisibility}" />
+                <Grid HorizontalAlignment="Center" VerticalAlignment="Bottom">
+                    <Image Source="{x:Bind Cover}" Stretch="Uniform" />
+                    <Border Visibility="{x:Bind FavoriteVisibility}" HorizontalAlignment="Right" VerticalAlignment="Top"
+                            Background="#99000000" Padding="4" Margin="0,4,4,0">
+                        <FontIcon Glyph="&#xE735;" FontSize="14" Foreground="#ffd600" />
+                    </Border>
+                    <ProgressBar Value="{x:Bind Percent}" Maximum="100" VerticalAlignment="Bottom" MinHeight="4" Height="4"
+                                 Background="#99000000" Foreground="{ThemeResource SystemControlBackgroundAccentBrush}" Visibility="{x:Bind ProgressVisibility}" />
+                </Grid>
                 <TextBlock Grid.Row="1" Text="{x:Bind Title}" FontSize="14" Margin="0,6,0,0"
                            TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" />
                 <Grid Grid.Row="2">
@@ -52,8 +54,8 @@
                     <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
                 <Grid Width="52" Height="76">
-                    <Border Background="{ThemeResource SystemControlBackgroundBaseLowBrush}" />
-                    <Image Source="{x:Bind Cover}" Stretch="UniformToFill" />
+                    <Border Background="{ThemeResource SystemControlBackgroundBaseLowBrush}" Visibility="{x:Bind NoCoverVisibility}" />
+                    <Image Source="{x:Bind Cover}" Stretch="Uniform" />
                 </Grid>
                 <StackPanel Grid.Column="1" Margin="12,6,12,6" VerticalAlignment="Center">
                     <TextBlock Text="CONTINUE READING" Style="{StaticResource CaptionTextBlockStyle}" FontWeight="SemiBold"
