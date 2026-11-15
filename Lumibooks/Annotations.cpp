@@ -19,8 +19,8 @@ void Annotations::Parse(String^ json)
     auto marks = root->GetNamedArray("bookmarks", ref new JsonArray());
     for (unsigned int i = 0; i < marks->Size; i++)
     {
-        auto o = dynamic_cast<JsonObject^>(marks->GetAt(i));
-        if (!o) continue;
+        if (marks->GetAt(i)->ValueType != JsonValueType::Object) continue;
+        auto o = marks->GetObjectAt(i);
         Bookmark b;
         b.chapter = (int)o->GetNamedNumber("c", 0);
         b.progress = o->GetNamedNumber("p", 0);
@@ -30,8 +30,8 @@ void Annotations::Parse(String^ json)
     auto hls = root->GetNamedArray("highlights", ref new JsonArray());
     for (unsigned int i = 0; i < hls->Size; i++)
     {
-        auto o = dynamic_cast<JsonObject^>(hls->GetAt(i));
-        if (!o) continue;
+        if (hls->GetAt(i)->ValueType != JsonValueType::Object) continue;
+        auto o = hls->GetObjectAt(i);
         Highlight h;
         h.id = (int)o->GetNamedNumber("id", 0);
         h.chapter = (int)o->GetNamedNumber("c", 0);

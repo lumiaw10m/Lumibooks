@@ -8,7 +8,7 @@ using namespace Windows::Foundation;
 using namespace Windows::Storage;
 using namespace Windows::Storage::Streams;
 
-static const char Inject[] = "<link rel=\"stylesheet\" href=\"/__lb/reader.css\"/><script src=\"/__lb/reader.js\"></script>";
+static const char Inject[] = "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"/><link rel=\"stylesheet\" href=\"/__lb/reader.css\"/><script src=\"/__lb/reader.js\"></script>";
 
 std::string EpubResolver::PathOf(Uri^ uri)
 {

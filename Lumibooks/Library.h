@@ -12,7 +12,16 @@ namespace Lumibooks
         property Platform::String^ CoverPath;
         property int ChapterIndex;
         property double ChapterProgress;
+        property bool Favorite;
         property Windows::UI::Xaml::Media::ImageSource^ Cover { Windows::UI::Xaml::Media::ImageSource^ get(); }
+        property Windows::UI::Xaml::Visibility FavoriteVisibility
+        {
+            Windows::UI::Xaml::Visibility get() { return Favorite ? Windows::UI::Xaml::Visibility::Visible : Windows::UI::Xaml::Visibility::Collapsed; }
+        }
+
+    internal:
+        std::vector<std::wstring> shelves;
+        bool InShelf(const std::wstring& name) { return std::find(shelves.begin(), shelves.end(), name) != shelves.end(); }
 
     private:
         Windows::UI::Xaml::Media::ImageSource^ cover;
@@ -26,6 +35,11 @@ namespace Lumibooks
         static void Save();
         static concurrency::task<Book^> Import(Windows::Storage::StorageFile^ file);
         static void Remove(Book^ book);
+        static std::vector<std::wstring>& Shelves();
+        static void AddShelf(const std::wstring& name);
+        static void RenameShelf(const std::wstring& from, const std::wstring& to);
+        static void DeleteShelf(const std::wstring& name);
+        static void SetShelf(Book^ book, const std::wstring& name, bool on);
         static concurrency::task<Windows::Storage::StorageFile^> GetFile(Platform::String^ relativePath);
         static concurrency::task<Platform::String^> ReadText(Platform::String^ relativePath);
         static void WriteText(Platform::String^ folder, Platform::String^ name, Platform::String^ text);

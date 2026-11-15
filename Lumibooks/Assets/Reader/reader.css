@@ -1,3 +1,4 @@
+@-ms-viewport{width:device-width}
 html{overflow:hidden!important;height:100%!important;margin:0!important;padding:0!important;visibility:hidden;touch-action:none;-ms-touch-action:none;-ms-content-zooming:none;-ms-user-select:none;user-select:none}
 html.lb-ready{visibility:visible}
 body{margin:0!important;box-sizing:border-box!important;overflow:visible!important;max-width:none!important;column-fill:auto!important;word-wrap:break-word}
@@ -7,5 +8,10 @@ body span.lb-h-2{background-color:rgba(110,210,110,.45)!important}
 body span.lb-h-3{background-color:rgba(90,170,255,.45)!important}
 body span.lb-h-4{background-color:rgba(255,120,170,.45)!important}
 body span.lb-hn{border-bottom:2px dotted currentColor}
-body span.lb-sel{background-color:rgba(0,120,215,.35)!important}
 body span.lb-hl{background-color:rgba(255,190,0,.4)!important}
+.lb-ov{position:fixed!important;left:0!important;top:0!important;margin:0!important;pointer-events:none!important;z-index:2147483646}
+.lb-ov i{position:fixed!important;margin:0!important;background:rgba(0,120,215,.35)!important;pointer-events:none!important}
+.lb-hd{display:none;position:fixed!important;width:44px!important;height:44px!important;margin:0!important;z-index:2147483647;touch-action:none}
+.lb-hd:after{content:'';position:absolute;left:12px;top:2px;width:20px;height:20px;background:#0078d7}
+.lb-ha:after{border-radius:50% 0 50% 50%}
+.lb-hb:after{border-radius:0 50% 50% 50%}

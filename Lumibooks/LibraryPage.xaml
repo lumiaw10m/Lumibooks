@@ -8,26 +8,34 @@
     <Grid Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
-        <TextBlock Text="LUMIBOOKS" Style="{StaticResource CaptionTextBlockStyle}" FontWeight="SemiBold" Margin="12,12,12,8" />
-        <TextBlock x:Name="EmptyText" Grid.Row="1" Margin="12" TextWrapping="Wrap" Opacity="0.7"
-                   Text="Your library is empty. Use Import to add EPUB books." />
-        <GridView Grid.Row="1" ItemsSource="{x:Bind Books}" SelectionMode="None" IsItemClickEnabled="True"
-                  ItemClick="OnItemClick" Padding="8,0,0,8">
+        <TextBlock Text="LUMIBOOKS" Style="{StaticResource CaptionTextBlockStyle}" FontWeight="SemiBold" Margin="12,12,12,0" />
+        <Pivot x:Name="Shelves" Grid.Row="1" Visibility="Collapsed" SelectionChanged="OnShelfChanged" />
+        <TextBlock x:Name="EmptyText" Grid.Row="2" Margin="12" TextWrapping="Wrap" Opacity="0.7" />
+        <GridView Grid.Row="2" ItemsSource="{x:Bind View}" SelectionMode="None" IsItemClickEnabled="True"
+                  ItemClick="OnItemClick" Padding="8,8,0,8">
             <GridView.ItemTemplate>
                 <DataTemplate x:DataType="local:Book">
-                    <Grid Width="104" Height="196" Holding="OnHolding" RightTapped="OnRightTapped">
+                    <Grid Width="104" Height="216" Holding="OnHolding" RightTapped="OnRightTapped">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="156" />
-                            <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
                         <Border Background="{ThemeResource SystemControlBackgroundBaseLowBrush}">
                             <TextBlock Text="{x:Bind Title}" TextWrapping="Wrap" FontSize="13" Margin="8" />
                         </Border>
                         <Image Source="{x:Bind Cover}" Stretch="UniformToFill" />
-                        <TextBlock Grid.Row="1" Text="{x:Bind Author}" FontSize="12" Opacity="0.7" Margin="0,4,0,0"
+                        <Border Visibility="{x:Bind FavoriteVisibility}" HorizontalAlignment="Right" VerticalAlignment="Top"
+                                Background="#99000000" Padding="4" Margin="0,4,4,0">
+                            <FontIcon Glyph="&#xE735;" FontSize="14" Foreground="#ffd600" />
+                        </Border>
+                        <TextBlock Grid.Row="1" Text="{x:Bind Title}" FontSize="14" Margin="0,6,0,0"
                                    TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" />
+                        <TextBlock Grid.Row="2" Text="{x:Bind Author}" FontSize="12" Opacity="0.6"
+                                   TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" />
                     </Grid>
                 </DataTemplate>
             </GridView.ItemTemplate>
@@ -37,6 +45,11 @@
     <Page.BottomAppBar>
         <CommandBar>
             <AppBarButton Icon="Add" Label="Import" Click="OnImport" />
+            <CommandBar.SecondaryCommands>
+                <AppBarButton Label="New shelf" Click="OnNewShelf" />
+                <AppBarButton x:Name="RenameShelfButton" Label="Rename shelf" Click="OnRenameShelf" Visibility="Collapsed" />
+                <AppBarButton x:Name="DeleteShelfButton" Label="Delete shelf" Click="OnDeleteShelf" Visibility="Collapsed" />
+            </CommandBar.SecondaryCommands>
         </CommandBar>
     </Page.BottomAppBar>
 </Page>

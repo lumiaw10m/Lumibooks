@@ -16,6 +16,7 @@ using namespace Windows::UI::Xaml::Media::Imaging;
 static Vector<Book^>^ s_books;
 static task<void> s_chain;
 static bool s_loaded;
+static std::vector<std::wstring> s_shelves;
 
 ImageSource^ Book::Cover::get()
 {
@@ -72,11 +73,20 @@ task<void> Library::Load()
         try { text = t.get(); }
         catch (Exception^) {}
         JsonArray^ arr = nullptr;
-        if (!text || !JsonArray::TryParse(text, &arr)) return;
+        JsonObject^ root = nullptr;
+        if (!text) return;
+        if (JsonObject::TryParse(text, &root))
+        {
+            arr = root->GetNamedArray("books", ref new JsonArray());
+            auto sh = root->GetNamedArray("shelves", ref new JsonArray());
+            for (unsigned int i = 0; i < sh->Size; i++)
+                if (sh->GetAt(i)->ValueType == JsonValueType::String) s_shelves.push_back(sh->GetStringAt(i)->Data());
+        }
+        else if (!JsonArray::TryParse(text, &arr)) return;
         for (unsigned int i = 0; i < arr->Size; i++)
         {
-            auto o = dynamic_cast<JsonObject^>(arr->GetAt(i));
-            if (!o) continue;
+            if (arr->GetAt(i)->ValueType != JsonValueType::Object) continue;
+            auto o = arr->GetObjectAt(i);
             auto b = ref new Book();
             b->Id = o->GetNamedString("id", "");
             b->Title = o->GetNamedString("title", "");
@@ -85,6 +95,10 @@ task<void> Library::Load()
             b->CoverPath = o->GetNamedString("cover", "");
             b->ChapterIndex = (int)o->GetNamedNumber("chapter", 0);
             b->ChapterProgress = o->GetNamedNumber("progress", 0);
+            b->Favorite = o->GetNamedBoolean("fav", false);
+            auto sh = o->GetNamedArray("shelves", ref new JsonArray());
+            for (unsigned int j = 0; j < sh->Size; j++)
+                if (sh->GetAt(j)->ValueType == JsonValueType::String) b->shelves.push_back(sh->GetStringAt(j)->Data());
             if (!b->FilePath->IsEmpty()) books->Append(b);
         }
     });
@@ -106,9 +120,21 @@ void Library::Save()
         o->Insert("cover", JsonValue::CreateStringValue(b->CoverPath));
         o->Insert("chapter", JsonValue::CreateNumberValue(b->ChapterIndex));
         o->Insert("progress", JsonValue::CreateNumberValue(b->ChapterProgress));
+        if (b->Favorite) o->Insert("fav", JsonValue::CreateBooleanValue(true));
+        if (!b->shelves.empty())
+        {
+            auto sh = ref new JsonArray();
+            for (auto& n : b->shelves) sh->Append(JsonValue::CreateStringValue(Str(n)));
+            o->Insert("shelves", sh);
+        }
         arr->Append(o);
     }
-    WriteText("", "library.json", arr->Stringify());
+    auto sh = ref new JsonArray();
+    for (auto& n : s_shelves) sh->Append(JsonValue::CreateStringValue(Str(n)));
+    auto root = ref new JsonObject();
+    root->Insert("books", arr);
+    root->Insert("shelves", sh);
+    WriteText("", "library.json", root->Stringify());
 }
 
 static task<void> WriteIn(StorageFolder^ dir, String^ name, String^ text)
@@ -233,4 +259,39 @@ void Library::Remove(Book^ book)
         if (!p || p->IsEmpty()) continue;
         GetFile(p).then([](StorageFile^ f) { return f->DeleteAsync(); }).then([](task<void> t) { Swallow(t); });
     }
+}
+
+std::vector<std::wstring>& Library::Shelves()
+{
+    return s_shelves;
+}
+
+void Library::AddShelf(const std::wstring& name)
+{
+    if (name.empty() || std::find(s_shelves.begin(), s_shelves.end(), name) != s_shelves.end()) return;
+    s_shelves.push_back(name);
+    Save();
+}
+
+void Library::RenameShelf(const std::wstring& from, const std::wstring& to)
+{
+    if (to.empty() || from == to || std::find(s_shelves.begin(), s_shelves.end(), to) != s_shelves.end()) return;
+    std::replace(s_shelves.begin(), s_shelves.end(), from, to);
+    for (auto b : Books()) std::replace(b->shelves.begin(), b->shelves.end(), from, to);
+    Save();
+}
+
+void Library::DeleteShelf(const std::wstring& name)
+{
+    s_shelves.erase(std::remove(s_shelves.begin(), s_shelves.end(), name), s_shelves.end());
+    for (auto b : Books()) b->shelves.erase(std::remove(b->shelves.begin(), b->shelves.end(), name), b->shelves.end());
+    Save();
+}
+
+void Library::SetShelf(Book^ book, const std::wstring& name, bool on)
+{
+    auto& v = book->shelves;
+    v.erase(std::remove(v.begin(), v.end(), name), v.end());
+    if (on) v.push_back(name);
+    Save();
 }
