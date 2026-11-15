@@ -1,0 +1,55 @@
+<Page
+    x:Class="Lumibooks.NotesPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Lumibooks">
+
+    <Page.Resources>
+        <CollectionViewSource x:Name="MarksSource" IsSourceGrouped="True" ItemsPath="Items" />
+        <CollectionViewSource x:Name="HighlightsSource" IsSourceGrouped="True" ItemsPath="Items" />
+        <DataTemplate x:Key="GroupTemplate" x:DataType="local:NoteGroup">
+            <TextBlock Text="{x:Bind Title}" Style="{StaticResource SubtitleTextBlockStyle}" Foreground="{ThemeResource SystemControlForegroundAccentBrush}"
+                       TextTrimming="CharacterEllipsis" />
+        </DataTemplate>
+        <DataTemplate x:Key="EntryTemplate" x:DataType="local:NavItem">
+            <Grid Margin="0,6">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Rectangle Width="4" Fill="{x:Bind Accent}" Margin="0,2,10,2" />
+                <StackPanel Grid.Column="1">
+                    <TextBlock Text="{x:Bind Title}" TextWrapping="Wrap" MaxLines="3" TextTrimming="CharacterEllipsis" />
+                    <TextBlock Text="{x:Bind Detail}" Style="{StaticResource CaptionTextBlockStyle}" Opacity="0.7" TextWrapping="Wrap" MaxLines="2" />
+                </StackPanel>
+            </Grid>
+        </DataTemplate>
+    </Page.Resources>
+
+    <Grid Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+        <Pivot Title="NOTES">
+            <PivotItem Header="Bookmarks">
+                <Grid>
+                    <TextBlock x:Name="NoMarks" Text="No bookmarks yet." Opacity="0.7" Margin="0,12" Visibility="Collapsed" />
+                    <ListView ItemsSource="{Binding Source={StaticResource MarksSource}}" SelectionMode="None" IsItemClickEnabled="True"
+                              ItemClick="OnItemClick" ItemTemplate="{StaticResource EntryTemplate}">
+                        <ListView.GroupStyle>
+                            <GroupStyle HeaderTemplate="{StaticResource GroupTemplate}" />
+                        </ListView.GroupStyle>
+                    </ListView>
+                </Grid>
+            </PivotItem>
+            <PivotItem Header="Highlights">
+                <Grid>
+                    <TextBlock x:Name="NoHighlights" Text="No highlights yet." Opacity="0.7" Margin="0,12" Visibility="Collapsed" />
+                    <ListView ItemsSource="{Binding Source={StaticResource HighlightsSource}}" SelectionMode="None" IsItemClickEnabled="True"
+                              ItemClick="OnItemClick" ItemTemplate="{StaticResource EntryTemplate}">
+                        <ListView.GroupStyle>
+                            <GroupStyle HeaderTemplate="{StaticResource GroupTemplate}" />
+                        </ListView.GroupStyle>
+                    </ListView>
+                </Grid>
+            </PivotItem>
+        </Pivot>
+    </Grid>
+</Page>

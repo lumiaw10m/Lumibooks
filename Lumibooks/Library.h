@@ -21,6 +21,7 @@ namespace Lumibooks
 
     internal:
         std::vector<std::wstring> shelves;
+        std::wstring jump;
         bool InShelf(const std::wstring& name) { return std::find(shelves.begin(), shelves.end(), name) != shelves.end(); }
 
     private:

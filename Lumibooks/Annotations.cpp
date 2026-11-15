@@ -25,6 +25,7 @@ void Annotations::Parse(String^ json)
         b.chapter = (int)o->GetNamedNumber("c", 0);
         b.progress = o->GetNamedNumber("p", 0);
         b.text = o->GetNamedString("t", "")->Data();
+        b.label = o->GetNamedString("l", "")->Data();
         bookmarks.push_back(b);
     }
     auto hls = root->GetNamedArray("highlights", ref new JsonArray());
@@ -40,6 +41,7 @@ void Annotations::Parse(String^ json)
         h.color = (int)o->GetNamedNumber("k", 1);
         h.text = o->GetNamedString("t", "")->Data();
         h.note = o->GetNamedString("n", "")->Data();
+        h.label = o->GetNamedString("l", "")->Data();
         if (h.end > h.start) highlights.push_back(h);
     }
 }
@@ -53,6 +55,7 @@ String^ Annotations::Json() const
         o->Insert("c", JsonValue::CreateNumberValue(b.chapter));
         o->Insert("p", JsonValue::CreateNumberValue(b.progress));
         o->Insert("t", JsonValue::CreateStringValue(Str(b.text)));
+        if (!b.label.empty()) o->Insert("l", JsonValue::CreateStringValue(Str(b.label)));
         marks->Append(o);
     }
     auto hls = ref new JsonArray();
@@ -66,6 +69,7 @@ String^ Annotations::Json() const
         o->Insert("k", JsonValue::CreateNumberValue(h.color));
         o->Insert("t", JsonValue::CreateStringValue(Str(h.text)));
         o->Insert("n", JsonValue::CreateStringValue(Str(h.note)));
+        if (!h.label.empty()) o->Insert("l", JsonValue::CreateStringValue(Str(h.label)));
         hls->Append(o);
     }
     auto root = ref new JsonObject();
@@ -104,4 +108,16 @@ int Annotations::NextId() const
     for (auto& h : highlights)
         if (h.id > id) id = h.id;
     return id + 1;
+}
+
+void Annotations::Sort()
+{
+    std::stable_sort(bookmarks.begin(), bookmarks.end(), [](const Bookmark& a, const Bookmark& b)
+    {
+        return a.chapter != b.chapter ? a.chapter < b.chapter : a.progress < b.progress;
+    });
+    std::stable_sort(highlights.begin(), highlights.end(), [](const Highlight& a, const Highlight& b)
+    {
+        return a.chapter != b.chapter ? a.chapter < b.chapter : a.start < b.start;
+    });
 }

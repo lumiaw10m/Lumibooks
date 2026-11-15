@@ -13,10 +13,22 @@ namespace Lumibooks
         property Platform::String^ Title;
         property Platform::String^ Detail;
         property Windows::UI::Xaml::Thickness Indent;
+        property Windows::UI::Xaml::Media::Brush^ Accent;
 
     internal:
         int kind, chapter, id;
+        double progress;
         Platform::String^ target;
+        Book^ book;
+    };
+
+    [Windows::UI::Xaml::Data::Bindable]
+    public ref class NoteGroup sealed
+    {
+    public:
+        NoteGroup() { Items = ref new Platform::Collections::Vector<NavItem^>(); }
+        property Platform::String^ Title;
+        property Windows::Foundation::Collections::IObservableVector<NavItem^>^ Items;
     };
 
     public ref class ReaderPage sealed
@@ -54,6 +66,7 @@ namespace Lumibooks
         void SaveNotes();
         void RenderHighlights();
         int FindBookmark();
+        std::wstring ChapterName(int c);
         void UpdateBookmark();
         void ShowSelBar();
         void HideSelBar();

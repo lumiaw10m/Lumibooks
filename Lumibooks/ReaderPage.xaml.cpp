@@ -159,7 +159,9 @@ void ReaderPage::OnNavigatedTo(NavigationEventArgs^ e)
             self->notes.Parse(json);
             int index = self->book->ChapterIndex;
             if (index < 0 || index >= (int)self->epub->spine.size()) index = 0;
-            self->Open(index, Fmt(L"p=%.4f", self->book->ChapterProgress));
+            String^ target = self->book->jump.empty() ? Fmt(L"p=%.4f", self->book->ChapterProgress) : Str(self->book->jump);
+            self->book->jump.clear();
+            self->Open(index, target);
         });
     });
 }
@@ -388,6 +390,23 @@ void ReaderPage::OnTheme(Object^ sender, RoutedEventArgs^ e)
     SettingsChanged();
 }
 
+std::wstring ReaderPage::ChapterName(int c)
+{
+    std::wstring name;
+    int best = -1;
+    for (auto& t : epub->toc)
+    {
+        int i = epub->SpineIndex(t.path);
+        if (i < 0 || i > c || i < best) continue;
+        if (i > best) name = t.title;
+        best = i;
+    }
+    if (!name.empty()) return name;
+    wchar_t s[32];
+    swprintf_s(s, L"Chapter %d", c + 1);
+    return s;
+}
+
 int ReaderPage::FindBookmark()
 {
     for (size_t i = 0; i < notes.bookmarks.size(); i++)
@@ -423,6 +442,7 @@ void ReaderPage::OnBookmark(Object^ sender, RoutedEventArgs^ e)
         Bookmark b;
         b.chapter = c;
         b.progress = p;
+        b.label = self->ChapterName(c);
         if (text) b.text = text->Data();
         self->notes.bookmarks.push_back(b);
         self->SaveNotes();
@@ -462,6 +482,7 @@ void ReaderPage::AddHighlight(int color, const std::wstring& note)
     h.color = color;
     h.text = selText;
     h.note = note;
+    h.label = ChapterName(chapter);
     notes.highlights.push_back(h);
 }
 
@@ -559,13 +580,14 @@ void ReaderPage::FillPanel()
     }
     TocList->ItemsSource = toc;
 
+    notes.Sort();
     auto marks = ref new Vector<NavItem^>();
     for (size_t i = 0; i < notes.bookmarks.size(); i++)
     {
         auto& b = notes.bookmarks[i];
         auto item = ref new NavItem();
         item->Title = b.text.empty() ? ref new String(L"Bookmark") : Str(b.text);
-        item->Detail = Fmt(L"Chapter %d  \u00b7  %d%%", b.chapter + 1, (int)(b.progress * 100));
+        item->Detail = Str(ChapterName(b.chapter)) + Fmt(L"  \u00b7  %d%%", (int)(b.progress * 100));
         item->kind = 1;
         item->chapter = b.chapter;
         item->id = (int)i;
@@ -585,7 +607,7 @@ void ReaderPage::FillPanel()
     {
         auto item = ref new NavItem();
         item->Title = Str(h->text);
-        item->Detail = h->note.empty() ? Fmt(L"Chapter %d", h->chapter + 1) : Str(h->note);
+        item->Detail = h->note.empty() ? Str(ChapterName(h->chapter)) : Str(h->note);
         item->kind = 2;
         item->chapter = h->chapter;
         item->id = h->id;

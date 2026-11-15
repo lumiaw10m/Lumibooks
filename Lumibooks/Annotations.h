@@ -6,13 +6,13 @@ namespace Lumibooks
     {
         int chapter;
         double progress;
-        std::wstring text;
+        std::wstring text, label;
     };
 
     struct Highlight
     {
         int id, chapter, start, end, color;
-        std::wstring text, note;
+        std::wstring text, note, label;
     };
 
     struct Annotations
@@ -25,5 +25,6 @@ namespace Lumibooks
         Platform::String^ ChapterJson(int chapter) const;
         Highlight* Find(int id);
         int NextId() const;
+        void Sort();
     };
 }

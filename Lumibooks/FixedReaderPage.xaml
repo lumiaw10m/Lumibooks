@@ -5,14 +5,26 @@
     xmlns:local="using:Lumibooks"
     RequestedTheme="Dark">
 
-    <Grid Background="#FF202020">
+    <Page.Resources>
+        <DataTemplate x:Key="EntryTemplate" x:DataType="local:NavItem">
+            <Grid Margin="{x:Bind Indent}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="{x:Bind Title}" TextWrapping="Wrap" />
+                <TextBlock Grid.Column="1" Text="{x:Bind Detail}" Opacity="0.6" Margin="12,0,0,0" />
+            </Grid>
+        </DataTemplate>
+    </Page.Resources>
+
+    <Grid Background="Black">
         <FlipView x:Name="Pages" Background="Transparent" SelectionChanged="OnPageChanged">
             <FlipView.ItemTemplate>
                 <DataTemplate x:DataType="local:PageView">
                     <ScrollViewer x:Name="Viewer" ZoomMode="Enabled" MinZoomFactor="1" MaxZoomFactor="4"
                                   HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Hidden"
                                   HorizontalScrollMode="Auto" VerticalScrollMode="Auto"
-                                  HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
                                   SizeChanged="OnViewerSizeChanged" ViewChanged="OnViewChanged"
                                   Tapped="OnTapped" DoubleTapped="OnDoubleTapped">
                         <Grid Width="{Binding ViewportWidth, ElementName=Viewer}" Height="{Binding ViewportHeight, ElementName=Viewer}">
@@ -22,6 +34,8 @@
                 </DataTemplate>
             </FlipView.ItemTemplate>
         </FlipView>
+        <Polygon x:Name="Ribbon" Points="0,0 18,0 18,26 9,19 0,26" Fill="{ThemeResource SystemControlBackgroundAccentBrush}"
+                 HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,0,20,0" Visibility="Collapsed" IsHitTestVisible="False" />
 
         <StackPanel x:Name="Bar" VerticalAlignment="Bottom" Visibility="Collapsed" Background="{ThemeResource SystemControlBackgroundChromeMediumBrush}">
             <Grid Margin="12,8,12,0">
@@ -34,28 +48,31 @@
                 <TextBlock x:Name="Status" Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center" Style="{StaticResource CaptionTextBlockStyle}" />
             </Grid>
             <CommandBar Background="Transparent">
-                <AppBarButton x:Name="ContentsButton" Label="Contents">
+                <AppBarButton Label="Contents" Click="OnContents">
                     <AppBarButton.Icon><FontIcon Glyph="&#xE8FD;" /></AppBarButton.Icon>
-                    <AppBarButton.Flyout>
-                        <Flyout x:Name="ContentsFlyout">
-                            <ListView x:Name="TocList" SelectionMode="None" IsItemClickEnabled="True" ItemClick="OnTocClick" MaxHeight="480" Width="300">
-                                <ListView.ItemTemplate>
-                                    <DataTemplate x:DataType="local:NavItem">
-                                        <Grid Margin="{x:Bind Indent}">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*" />
-                                                <ColumnDefinition Width="Auto" />
-                                            </Grid.ColumnDefinitions>
-                                            <TextBlock Text="{x:Bind Title}" TextWrapping="Wrap" />
-                                            <TextBlock Grid.Column="1" Text="{x:Bind Detail}" Opacity="0.6" Margin="8,0,0,0" />
-                                        </Grid>
-                                    </DataTemplate>
-                                </ListView.ItemTemplate>
-                            </ListView>
-                        </Flyout>
-                    </AppBarButton.Flyout>
                 </AppBarButton>
+                <AppBarToggleButton x:Name="MarkButton" Label="Bookmark" Click="OnBookmark">
+                    <AppBarToggleButton.Icon><FontIcon Glyph="&#xE8A4;" /></AppBarToggleButton.Icon>
+                </AppBarToggleButton>
             </CommandBar>
         </StackPanel>
+
+        <Grid x:Name="Panel" Visibility="Collapsed" Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+            <Pivot>
+                <PivotItem Header="Contents">
+                    <Grid>
+                        <TextBlock x:Name="NoToc" Text="This document has no table of contents." Opacity="0.7" TextWrapping="Wrap" Margin="0,12" Visibility="Collapsed" />
+                        <ListView x:Name="TocList" SelectionMode="None" IsItemClickEnabled="True" ItemClick="OnEntryClick" ItemTemplate="{StaticResource EntryTemplate}" />
+                    </Grid>
+                </PivotItem>
+                <PivotItem Header="Bookmarks">
+                    <Grid>
+                        <TextBlock x:Name="NoMarks" Text="No bookmarks yet. Tap the middle of a page and choose Bookmark." Opacity="0.7" TextWrapping="Wrap" Margin="0,12" Visibility="Collapsed" />
+                        <ListView x:Name="MarkList" SelectionMode="None" IsItemClickEnabled="True" ItemClick="OnEntryClick" ItemTemplate="{StaticResource EntryTemplate}"
+                                  Holding="OnMarkHolding" RightTapped="OnMarkRightTapped" />
+                    </Grid>
+                </PivotItem>
+            </Pivot>
+        </Grid>
     </Grid>
 </Page>

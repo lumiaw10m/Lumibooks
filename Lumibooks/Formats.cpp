@@ -504,6 +504,34 @@ static size_t FindNoCase(const std::string& s, const char* t, size_t from)
     return std::string::npos;
 }
 
+static std::wstring HeadingOf(const std::string& html)
+{
+    for (size_t p = 0; (p = FindNoCase(html, "<h", p)) != std::string::npos; p += 2)
+    {
+        char level = p + 2 < html.size() ? html[p + 2] : 0;
+        if (level < '1' || level > '3') continue;
+        size_t gt = html.find('>', p);
+        char close[5] = { '<', '/', 'h', level, 0 };
+        size_t end = gt == std::string::npos ? gt : FindNoCase(html, close, gt);
+        if (end == std::string::npos) return std::wstring();
+        std::string t;
+        bool tag = false;
+        for (size_t i = gt + 1; i < end; i++)
+        {
+            char c = html[i];
+            if (c == '<') tag = true;
+            else if (c == '>') tag = false;
+            else if (!tag) t += isspace((unsigned char)c) ? ' ' : c;
+        }
+        for (auto e : { std::make_pair("&amp;", "&"), std::make_pair("&nbsp;", " "), std::make_pair("&lt;", "<"), std::make_pair("&gt;", ">") })
+            for (size_t q; (q = t.find(e.first)) != std::string::npos;) t.replace(q, strlen(e.first), e.second);
+        size_t a = t.find_first_not_of(' '), z = t.find_last_not_of(' ');
+        if (a == std::string::npos || z - a > 200) return std::wstring();
+        return Wide(t.c_str() + a, z - a + 1);
+    }
+    return std::wstring();
+}
+
 static std::shared_ptr<Epub> ConvertMobi(const std::vector<uint8_t>& data)
 {
     std::map<std::string, std::vector<uint8_t>> entries;
@@ -638,6 +666,15 @@ static std::shared_ptr<Epub> ConvertMobi(const std::vector<uint8_t>& data)
             body.append(c, p, h - p);
             body += "href=\"" + (f == anchorFile.end() ? std::string() : f->second) + "#" + id + "\"";
             p = z + 1;
+        }
+        auto title = HeadingOf(body);
+        if (!title.empty())
+        {
+            TocEntry t;
+            t.title = title;
+            t.path = files[k];
+            t.depth = 0;
+            book->toc.push_back(t);
         }
         book->Add(files[k], Bytes(head + "<body>" + body + "</body></html>"));
         book->spine.push_back(files[k]);

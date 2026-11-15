@@ -68,27 +68,166 @@ void FixedReaderPage::OnNavigatedTo(NavigationEventArgs^ e)
             v->index = i;
             self->views->Append(v);
         }
-        auto toc = ref new Vector<NavItem^>();
-        for (auto& entry : d->toc)
+        Library::ReadText("notes/" + self->book->Id + ".json").then([self, d](String^ json)
         {
-            auto item = ref new NavItem();
-            item->Title = ref new String(entry.title.c_str());
-            item->Detail = Num(entry.page + 1);
-            item->Indent = Thickness(entry.depth * 16.0, 6, 0, 6);
-            item->chapter = entry.page;
-            toc->Append(item);
-        }
-        self->TocList->ItemsSource = toc;
-        self->ContentsButton->Visibility = toc->Size ? Windows::UI::Xaml::Visibility::Visible : Windows::UI::Xaml::Visibility::Collapsed;
-        self->PageSlider->Maximum = d->Pages();
-        self->Pages->ItemsSource = self->views;
-        int start = self->book->ChapterIndex;
-        if (start < 0 || start >= d->Pages()) start = 0;
-        self->ready = true;
-        if (self->Pages->SelectedIndex == start) self->Show(start);
-        else self->Pages->SelectedIndex = start;
-        self->UpdateStatus();
+            self->notes.Parse(json);
+            self->PageSlider->Maximum = d->Pages();
+            self->Pages->ItemsSource = self->views;
+            int start = self->book->ChapterIndex;
+            if (start < 0 || start >= d->Pages()) start = 0;
+            self->book->jump.clear();
+            self->ready = true;
+            if (self->Pages->SelectedIndex == start) self->Show(start);
+            else self->Pages->SelectedIndex = start;
+            self->UpdateStatus();
+            self->UpdateBookmark();
+        }, task_continuation_context::use_current());
     });
+}
+
+bool FixedReaderPage::HandleBack()
+{
+    if (Panel->Visibility == Windows::UI::Xaml::Visibility::Visible) Panel->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
+    else if (Bar->Visibility == Windows::UI::Xaml::Visibility::Visible) Bar->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
+    else return false;
+    return true;
+}
+
+std::wstring FixedReaderPage::SectionOf(int page)
+{
+    std::wstring name;
+    int best = -1;
+    for (auto& entry : doc->toc)
+        if (entry.page <= page && entry.page >= best)
+        {
+            name = entry.title;
+            best = entry.page;
+        }
+    return name;
+}
+
+int FixedReaderPage::FindBookmark()
+{
+    int page = Pages->SelectedIndex;
+    for (size_t i = 0; i < notes.bookmarks.size(); i++)
+        if (notes.bookmarks[i].chapter == page) return (int)i;
+    return -1;
+}
+
+void FixedReaderPage::UpdateBookmark()
+{
+    bool on = FindBookmark() >= 0;
+    Ribbon->Visibility = on ? Windows::UI::Xaml::Visibility::Visible : Windows::UI::Xaml::Visibility::Collapsed;
+    MarkButton->IsChecked = ref new Box<bool>(on);
+}
+
+void FixedReaderPage::SaveNotes()
+{
+    Library::WriteText("notes", book->Id + ".json", notes.Json());
+}
+
+void FixedReaderPage::OnBookmark(Object^ sender, RoutedEventArgs^ e)
+{
+    int page = Pages->SelectedIndex;
+    if (!doc || page < 0) return;
+    int i = FindBookmark();
+    if (i >= 0) notes.bookmarks.erase(notes.bookmarks.begin() + i);
+    else
+    {
+        Bookmark b;
+        b.chapter = page;
+        b.progress = doc->Pages() > 1 ? (double)page / (doc->Pages() - 1) : 0;
+        b.text = SectionOf(page);
+        b.label = std::wstring(L"Page ") + Num(page + 1)->Data();
+        notes.bookmarks.push_back(b);
+    }
+    SaveNotes();
+    UpdateBookmark();
+}
+
+void FixedReaderPage::FillPanel()
+{
+    auto toc = ref new Vector<NavItem^>();
+    for (auto& entry : doc->toc)
+    {
+        auto item = ref new NavItem();
+        item->Title = ref new String(entry.title.c_str());
+        item->Detail = Num(entry.page + 1);
+        item->Indent = Thickness(entry.depth * 16.0, 8, 0, 8);
+        item->kind = 0;
+        item->chapter = entry.page;
+        toc->Append(item);
+    }
+    TocList->ItemsSource = toc;
+    NoToc->Visibility = toc->Size ? Windows::UI::Xaml::Visibility::Collapsed : Windows::UI::Xaml::Visibility::Visible;
+
+    notes.Sort();
+    auto marks = ref new Vector<NavItem^>();
+    for (size_t i = 0; i < notes.bookmarks.size(); i++)
+    {
+        auto& b = notes.bookmarks[i];
+        auto item = ref new NavItem();
+        item->Title = "Page " + Num(b.chapter + 1);
+        item->Detail = ref new String(b.text.c_str());
+        item->Indent = Thickness(0, 8, 0, 8);
+        item->kind = 1;
+        item->chapter = b.chapter;
+        item->id = (int)i;
+        marks->Append(item);
+    }
+    MarkList->ItemsSource = marks;
+    NoMarks->Visibility = marks->Size ? Windows::UI::Xaml::Visibility::Collapsed : Windows::UI::Xaml::Visibility::Visible;
+}
+
+void FixedReaderPage::OnContents(Object^ sender, RoutedEventArgs^ e)
+{
+    if (!doc) return;
+    FillPanel();
+    Bar->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
+    Panel->Visibility = Windows::UI::Xaml::Visibility::Visible;
+}
+
+void FixedReaderPage::OnEntryClick(Object^ sender, ItemClickEventArgs^ e)
+{
+    auto item = dynamic_cast<NavItem^>(e->ClickedItem);
+    Panel->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
+    if (item && item->chapter >= 0 && item->chapter < (int)views->Size) Pages->SelectedIndex = item->chapter;
+}
+
+void FixedReaderPage::ShowDeleteMenu(FrameworkElement^ target)
+{
+    auto item = target ? dynamic_cast<NavItem^>(target->DataContext) : nullptr;
+    if (!item) return;
+    auto remove = ref new MenuFlyoutItem();
+    remove->Text = "Delete";
+    WeakReference weak(this);
+    int id = item->id;
+    remove->Click += ref new RoutedEventHandler([weak, id](Object^, RoutedEventArgs^)
+    {
+        auto p = weak.Resolve<FixedReaderPage>();
+        if (!p || id >= (int)p->notes.bookmarks.size()) return;
+        p->notes.bookmarks.erase(p->notes.bookmarks.begin() + id);
+        p->SaveNotes();
+        p->FillPanel();
+        p->UpdateBookmark();
+    });
+    auto menu = ref new MenuFlyout();
+    menu->Items->Append(remove);
+    menu->ShowAt(target);
+}
+
+void FixedReaderPage::OnMarkHolding(Object^ sender, HoldingRoutedEventArgs^ e)
+{
+    if (e->HoldingState != Windows::UI::Input::HoldingState::Started) return;
+    e->Handled = true;
+    ShowDeleteMenu(dynamic_cast<FrameworkElement^>(e->OriginalSource));
+}
+
+void FixedReaderPage::OnMarkRightTapped(Object^ sender, RightTappedRoutedEventArgs^ e)
+{
+    if (e->PointerDeviceType == Windows::Devices::Input::PointerDeviceType::Touch) return;
+    e->Handled = true;
+    ShowDeleteMenu(dynamic_cast<FrameworkElement^>(e->OriginalSource));
 }
 
 void FixedReaderPage::OnNavigatedFrom(NavigationEventArgs^ e)
@@ -189,6 +328,7 @@ void FixedReaderPage::OnPageChanged(Object^ sender, SelectionChangedEventArgs^ e
     book->ChapterProgress = doc->Pages() > 1 ? (double)i / (doc->Pages() - 1) : 0;
     Library::Save();
     UpdateStatus();
+    UpdateBookmark();
 }
 
 void FixedReaderPage::OnViewerSizeChanged(Object^ sender, SizeChangedEventArgs^ e)
@@ -239,14 +379,6 @@ void FixedReaderPage::OnDoubleTapped(Object^ sender, DoubleTappedRoutedEventArgs
     auto p = e->GetPosition(sv);
     float z = 2.5f;
     sv->ChangeView(ref new Box<double>(p.X * z - sv->ViewportWidth / 2), ref new Box<double>(p.Y * z - sv->ViewportHeight / 2), ref new Box<float>(z));
-}
-
-void FixedReaderPage::OnTocClick(Object^ sender, ItemClickEventArgs^ e)
-{
-    auto item = dynamic_cast<NavItem^>(e->ClickedItem);
-    ContentsFlyout->Hide();
-    Bar->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
-    if (item && item->chapter >= 0 && item->chapter < (int)views->Size) Pages->SelectedIndex = item->chapter;
 }
 
 void FixedReaderPage::OnSliderDone(Object^ sender, PointerRoutedEventArgs^ e)

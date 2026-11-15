@@ -33,6 +33,7 @@ namespace Lumibooks
     {
     public:
         FixedReaderPage();
+        bool HandleBack();
 
     protected:
         virtual void OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEventArgs^ e) override;
@@ -44,8 +45,20 @@ namespace Lumibooks
         Platform::Collections::Vector<PageView^>^ views;
         float fitW, fitH;
         bool ready;
+        Annotations notes;
 
         void Show(int page);
+        std::wstring SectionOf(int page);
+        int FindBookmark();
+        void UpdateBookmark();
+        void FillPanel();
+        void SaveNotes();
+        void ShowDeleteMenu(Windows::UI::Xaml::FrameworkElement^ target);
+        void OnContents(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
+        void OnBookmark(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
+        void OnEntryClick(Platform::Object^ sender, Windows::UI::Xaml::Controls::ItemClickEventArgs^ e);
+        void OnMarkHolding(Platform::Object^ sender, Windows::UI::Xaml::Input::HoldingRoutedEventArgs^ e);
+        void OnMarkRightTapped(Platform::Object^ sender, Windows::UI::Xaml::Input::RightTappedRoutedEventArgs^ e);
         void Render(PageView^ v, float zoom);
         float FitScale(int page);
         void UpdateStatus();
@@ -54,7 +67,6 @@ namespace Lumibooks
         void OnViewChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::ScrollViewerViewChangedEventArgs^ e);
         void OnTapped(Platform::Object^ sender, Windows::UI::Xaml::Input::TappedRoutedEventArgs^ e);
         void OnDoubleTapped(Platform::Object^ sender, Windows::UI::Xaml::Input::DoubleTappedRoutedEventArgs^ e);
-        void OnTocClick(Platform::Object^ sender, Windows::UI::Xaml::Controls::ItemClickEventArgs^ e);
         void OnSliderDone(Platform::Object^ sender, Windows::UI::Xaml::Input::PointerRoutedEventArgs^ e);
         void OnSliderKey(Platform::Object^ sender, Windows::UI::Xaml::Input::KeyRoutedEventArgs^ e);
     };

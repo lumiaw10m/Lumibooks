@@ -189,7 +189,10 @@ task<Book^> Library::Import(StorageFile^ file)
 {
     auto local = ApplicationData::Current->LocalFolder;
     auto ui = task_continuation_context::use_current();
-    String^ name = file->DisplayName;
+    std::wstring base = file->Name->Data();
+    size_t dot = base.rfind(L'.');
+    if (dot != std::wstring::npos && dot > 0) base.resize(dot);
+    String^ name = Str(base);
     String^ id = NewId();
     Format fmt = FormatOf(file->Name->Data());
     String^ fileName = id + ref new String(Extension(fmt));

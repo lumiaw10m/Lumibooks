@@ -4,6 +4,7 @@
 #include "LibraryPage.xaml.h"
 #include "ReaderPage.xaml.h"
 #include "FixedReaderPage.xaml.h"
+#include "NotesPage.xaml.h"
 
 using namespace Lumibooks;
 using namespace concurrency;
@@ -58,6 +59,7 @@ void App::OnLaunched(LaunchActivatedEventArgs^ e)
         auto path = ApplicationData::Current->LocalFolder->Path + "\\inbox\\" +ref new String(arg.c_str() + 7);
         ImportAndOpen(frame, create_task(StorageFile::GetFileFromPathAsync(path)));
     }
+    else if (arg == L"notes") Library::Load().then([frame] { frame->Navigate(TypeName(NotesPage::typeid)); }, task_continuation_context::use_current());
 }
 
 void App::OnFileActivated(FileActivatedEventArgs^ e)
@@ -74,7 +76,8 @@ void App::OnBackRequested(Object^ sender, BackRequestedEventArgs^ e)
     auto frame = dynamic_cast<Frame^>(Window::Current->Content);
     ReaderPage^ reader = nullptr;
     if (frame) reader = dynamic_cast<ReaderPage^>(frame->Content);
-    if (reader && reader->HandleBack())
+    auto fixed = frame ? dynamic_cast<FixedReaderPage^>(frame->Content) : nullptr;
+    if ((reader && reader->HandleBack()) || (fixed && fixed->HandleBack()))
     {
         e->Handled = true;
         return;

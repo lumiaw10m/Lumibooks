@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "LibraryPage.xaml.h"
 #include "FixedReaderPage.xaml.h"
+#include "NotesPage.xaml.h"
 
 using namespace Lumibooks;
 using namespace concurrency;
@@ -18,7 +19,6 @@ using namespace Windows::UI::Xaml::Interop;
 
 LibraryPage::LibraryPage() : building(false)
 {
-    view = ref new Vector<Book^>();
     InitializeComponent();
     WeakReference weak(this);
     Library::Books()->VectorChanged += ref new VectorChangedEventHandler<Book^>([weak](IObservableVector<Book^>^, IVectorChangedEventArgs^)
@@ -43,15 +43,20 @@ std::wstring LibraryPage::Current()
 void LibraryPage::Refresh()
 {
     if (building) return;
-    auto shelf = Current();
-    view->Clear();
-    for (int fav = 1; fav >= 0; fav--)
-        for (auto b : Library::Books())
-            if (b->Favorite == (fav == 1) && (shelf.empty() || b->InShelf(shelf))) view->Append(b);
-    EmptyText->Text = !Library::Books()->Size ? "Your library is empty. Use Import to add EPUB books."
-        : "This shelf is empty. Hold a book and choose Shelves to add it here.";
-    EmptyText->Visibility = view->Size ? Windows::UI::Xaml::Visibility::Collapsed : Windows::UI::Xaml::Visibility::Visible;
-    auto shelfButtons = shelf.empty() ? Windows::UI::Xaml::Visibility::Collapsed : Windows::UI::Xaml::Visibility::Visible;
+    auto& all = Library::Shelves();
+    for (size_t k = 0; k < views.size(); k++)
+    {
+        std::wstring shelf = k == 0 || k > all.size() ? std::wstring() : all[k - 1];
+        auto& v = views[k];
+        v.books->Clear();
+        for (int fav = 1; fav >= 0; fav--)
+            for (auto b : Library::Books())
+                if (b->Favorite == (fav == 1) && (shelf.empty() || b->InShelf(shelf))) v.books->Append(b);
+        v.empty->Text = !Library::Books()->Size ? L"Your library is empty. Use Import to add books."
+            : L"This shelf is empty. Hold a book and choose Shelves to add it here.";
+        v.empty->Visibility = v.books->Size ? Windows::UI::Xaml::Visibility::Collapsed : Windows::UI::Xaml::Visibility::Visible;
+    }
+    auto shelfButtons = Current().empty() ? Windows::UI::Xaml::Visibility::Collapsed : Windows::UI::Xaml::Visibility::Visible;
     RenameShelfButton->Visibility = shelfButtons;
     DeleteShelfButton->Visibility = shelfButtons;
 }
@@ -61,21 +66,42 @@ void LibraryPage::RebuildShelves(const std::wstring& select)
     auto& all = Library::Shelves();
     building = true;
     Shelves->Items->Clear();
-    auto head = ref new PivotItem();
-    head->Header = "All";
-    Shelves->Items->Append(head);
+    views.clear();
+    auto tpl = safe_cast<DataTemplate^>(Resources->Lookup("BookTemplate"));
     int index = 0;
-    for (size_t i = 0; i < all.size(); i++)
+    for (size_t i = 0; i <= all.size(); i++)
     {
+        ShelfView v;
+        v.books = ref new Vector<Book^>();
+        v.empty = ref new TextBlock();
+        v.empty->TextWrapping = TextWrapping::Wrap;
+        v.empty->Opacity = 0.7;
+        v.empty->Margin = Thickness(0, 12, 0, 0);
+        auto grid = ref new GridView();
+        grid->ItemTemplate = tpl;
+        grid->ItemsSource = v.books;
+        grid->SelectionMode = ListViewSelectionMode::None;
+        grid->IsItemClickEnabled = true;
+        grid->ItemClick += ref new ItemClickEventHandler(this, &LibraryPage::OnItemClick);
+        auto host = ref new Grid();
+        host->Children->Append(v.empty);
+        host->Children->Append(grid);
         auto item = ref new PivotItem();
-        item->Header = ref new String(all[i].c_str());
+        item->Header = i == 0 ? ref new String(L"All") : ref new String(all[i - 1].c_str());
+        item->Margin = Thickness(4, 0, 0, 0);
+        item->Content = host;
         Shelves->Items->Append(item);
-        if (all[i] == select) index = (int)i + 1;
+        views.push_back(v);
+        if (i > 0 && all[i - 1] == select) index = (int)i;
     }
     Shelves->SelectedIndex = index;
-    Shelves->Visibility = all.empty() ? Windows::UI::Xaml::Visibility::Collapsed : Windows::UI::Xaml::Visibility::Visible;
     building = false;
     Refresh();
+}
+
+void LibraryPage::OnNotes(Object^ sender, RoutedEventArgs^ e)
+{
+    this->Frame->Navigate(TypeName(NotesPage::typeid));
 }
 
 void LibraryPage::OnShelfChanged(Object^ sender, SelectionChangedEventArgs^ e)
@@ -224,7 +250,7 @@ void LibraryPage::ShowMenu(FrameworkElement^ target)
     }
     if (!Library::Shelves().empty()) shelves->Items->Append(ref new MenuFlyoutSeparator());
     auto add = ref new MenuFlyoutItem();
-    add->Text = "New shelf…";
+    add->Text = L"New shelf…";
     add->Click += ref new RoutedEventHandler([self, book](Object^, RoutedEventArgs^)
     {
         self->AskName("New shelf", "", [self, book](const std::wstring& name)

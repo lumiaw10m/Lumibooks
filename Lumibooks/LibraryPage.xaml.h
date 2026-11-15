@@ -8,13 +8,14 @@ namespace Lumibooks
     {
     public:
         LibraryPage();
-        property Windows::Foundation::Collections::IObservableVector<Book^>^ View
-        {
-            Windows::Foundation::Collections::IObservableVector<Book^>^ get() { return view; }
-        }
 
     private:
-        Platform::Collections::Vector<Book^>^ view;
+        struct ShelfView
+        {
+            Platform::Collections::Vector<Book^>^ books;
+            Windows::UI::Xaml::Controls::TextBlock^ empty;
+        };
+        std::vector<ShelfView> views;
         bool building;
         std::wstring Current();
         void Refresh();
@@ -23,6 +24,7 @@ namespace Lumibooks
         void ShowMenu(Windows::UI::Xaml::FrameworkElement^ target);
         void OnItemClick(Platform::Object^ sender, Windows::UI::Xaml::Controls::ItemClickEventArgs^ e);
         void OnImport(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
+        void OnNotes(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
         void OnNewShelf(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
         void OnRenameShelf(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
         void OnDeleteShelf(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
