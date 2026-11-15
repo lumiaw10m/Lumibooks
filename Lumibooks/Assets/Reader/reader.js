@@ -1,7 +1,7 @@
 (function () {
     var XHTML = 'http://www.w3.org/1999/xhtml';
     var W = 0, n = 1, page = 0, frac = 0, anchor = null, offset = null, query = null, found = null, note = null, ready = false, timer = 0;
-    var sx = null, sy = 0, swipeAt = 0, wheelAt = 0, pressTimer = 0, quietUntil = 0;
+    var sx = null, sy = 0, sliding = false, swipeAt = 0, wheelAt = 0, pressTimer = 0, quietUntil = 0;
     var cfg = { margin: 16, vmargin: 20 };
     var sents = [], spoken = -1, sel = null, tn = null, ov = null, hA = null, hB = null, drag = null, fixed = null;
     var BLOCK = /^(p|div|h[1-6]|li|blockquote|td|th|dd|dt|pre|section|article|aside|header|footer|figcaption|caption|body|tr|table|ul|ol|dl|figure|nav|main|address)$/;
@@ -68,14 +68,16 @@
         return 0;
     }
 
-    function go(i, user) {
+    function go(i, user, anim) {
         page = Math.max(0, Math.min(n - 1, i));
         window.scrollTo(0, 0);
         document.body.scrollLeft = 0;
+        anim = anim && cfg.anim !== false;
+        document.body.style.transition = anim ? 'transform .25s ease-out' : 'none';
         document.body.style.transform = 'translateX(' + (-page * W) + 'px)';
         if (user) frac = n > 1 ? page / (n - 1) : 0;
         if (ready) send('page:' + page + '/' + n);
-        if (sel || found || ov) drawSel();
+        if (sel || found || ov) { if (anim) setTimeout(drawSel, 270); else drawSel(); }
     }
 
     function layout() {
@@ -85,6 +87,7 @@
         style('lb-layout', 'body{width:' + W + 'px!important;height:' + H + 'px!important;padding:' + v + 'px ' + m + 'px!important;' +
             'column-width:' + (W - 2 * m) + 'px!important;column-gap:' + (2 * m) + 'px!important}' +
             'img,svg,video{max-height:' + (H - 2 * v) + 'px!important}');
+        document.body.style.transition = 'none';
         document.body.style.transform = 'none';
         page = 0;
         window.scrollTo(0, 0);
@@ -102,8 +105,8 @@
         if (ready) { anchor = null; offset = null; query = null; }
     }
 
-    function next() { if (page < n - 1) go(page + 1, true); else send('next-chapter'); }
-    function prev() { if (page > 0) go(page - 1, true); else send('prev-chapter'); }
+    function next() { if (page < n - 1) go(page + 1, true, true); else send('next-chapter'); }
+    function prev() { if (page > 0) go(page - 1, true, true); else send('prev-chapter'); }
 
     window.lbApply = function (json) {
         cfg = JSON.parse(json);
@@ -524,12 +527,21 @@
             e.preventDefault();
             return;
         }
-        if (sx !== null && Math.abs(e.clientX - sx) + Math.abs(e.clientY - sy) > 12) clearTimeout(pressTimer);
+        if (sx === null) return;
+        var mx = e.clientX - sx, my = e.clientY - sy;
+        if (Math.abs(mx) + Math.abs(my) > 12) clearTimeout(pressTimer);
+        if (cfg.anim === false || note || sel) return;
+        if (!sliding && Math.abs(mx) > 12 && Math.abs(mx) > Math.abs(my)) sliding = true;
+        if (!sliding) return;
+        var off = (page == 0 && mx > 0) || (page == n - 1 && mx < 0) ? mx * 0.35 : mx;
+        document.body.style.transition = 'none';
+        document.body.style.transform = 'translateX(' + (off - page * W) + 'px)';
     }, true);
 
     document.addEventListener('pointercancel', function () {
         clearTimeout(pressTimer);
         sx = null;
+        if (sliding) { sliding = false; go(page, false, true); }
         if (drag) { drag = null; selDone(); }
     }, true);
 
@@ -542,11 +554,17 @@
             return;
         }
         if (sx === null) return;
-        var dx = e.clientX - sx, dy = e.clientY - sy;
+        var dx = e.clientX - sx, dy = e.clientY - sy, was = sliding;
         sx = null;
+        sliding = false;
         if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) {
             swipeAt = Date.now();
             if (dx < 0) next(); else prev();
+            if (was && ((dx < 0 && page == n - 1) || (dx > 0 && page == 0))) go(page, false, true);
+        }
+        else if (was) {
+            swipeAt = Date.now();
+            go(page, false, true);
         }
     }, true);
 

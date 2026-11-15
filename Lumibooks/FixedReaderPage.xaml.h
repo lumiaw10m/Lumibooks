@@ -49,6 +49,7 @@ namespace Lumibooks
         Annotations notes;
         std::string mark;
         int searchToken = 0;
+        int statPage = -1;
         std::shared_ptr<bool> searchCancel;
 
         void Show(int page);

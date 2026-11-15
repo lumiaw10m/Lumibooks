@@ -16,6 +16,7 @@ namespace Lumibooks
         bool justify = true;
         bool hyphen = true;
         bool spacing = false;
+        bool animate = true;
         int para = 5;
         int indent = 15;
         int theme = 0;

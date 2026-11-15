@@ -2,6 +2,7 @@
 #include "LibraryPage.xaml.h"
 #include "FixedReaderPage.xaml.h"
 #include "NotesPage.xaml.h"
+#include "StatsPage.xaml.h"
 #include <cmath>
 
 using namespace Lumibooks;
@@ -238,6 +239,11 @@ void LibraryPage::OnNotes(Object^ sender, RoutedEventArgs^ e)
     this->Frame->Navigate(TypeName(NotesPage::typeid));
 }
 
+void LibraryPage::OnStats(Object^ sender, RoutedEventArgs^ e)
+{
+    this->Frame->Navigate(TypeName(StatsPage::typeid));
+}
+
 void LibraryPage::OnContinue(Object^ sender, TappedRoutedEventArgs^ e)
 {
     auto book = dynamic_cast<Book^>(continueCard->Content);
@@ -445,6 +451,11 @@ void LibraryPage::ShowMenu(FrameworkElement^ target)
     });
     shelves->Items->Append(add);
     menu->Items->Append(shelves);
+
+    auto stats = ref new MenuFlyoutItem();
+    stats->Text = "Statistics";
+    stats->Click += ref new RoutedEventHandler([book](Object^, RoutedEventArgs^) { StatsPage::ShowBook(book); });
+    menu->Items->Append(stats);
 
     menu->Items->Append(ref new MenuFlyoutSeparator());
     auto remove = ref new MenuFlyoutItem();

@@ -1,10 +1,12 @@
 #include "pch.h"
 #include "Library.h"
 #include "Settings.h"
+#include "Stats.h"
 #include "LibraryPage.xaml.h"
 #include "ReaderPage.xaml.h"
 #include "FixedReaderPage.xaml.h"
 #include "NotesPage.xaml.h"
+#include "StatsPage.xaml.h"
 
 using namespace Lumibooks;
 using namespace concurrency;
@@ -22,6 +24,7 @@ using namespace Windows::UI::Xaml::Navigation;
 App::App()
 {
     InitializeComponent();
+    Suspending += ref new SuspendingEventHandler([](Object^, Windows::ApplicationModel::SuspendingEventArgs^) { Stats::Save(); });
 }
 
 Frame^ App::EnsureFrame()
@@ -30,6 +33,7 @@ Frame^ App::EnsureFrame()
     if (!frame)
     {
         Settings::Get().Load();
+        Stats::Load();
         Library::Load();
         frame = ref new Frame();
         frame->Navigated += ref new NavigatedEventHandler(this, &App::OnNavigated);
@@ -60,6 +64,7 @@ void App::OnLaunched(LaunchActivatedEventArgs^ e)
         auto path = ApplicationData::Current->LocalFolder->Path + "\\inbox\\" +ref new String(arg.c_str() + 7);
         ImportAndOpen(frame, create_task(StorageFile::GetFileFromPathAsync(path)));
     }
+    else if (arg == L"stats") Library::Load().then([frame] { frame->Navigate(TypeName(StatsPage::typeid)); }, task_continuation_context::use_current());
     else if (arg == L"notes") Library::Load().then([frame] { frame->Navigate(TypeName(NotesPage::typeid)); }, task_continuation_context::use_current());
 }
 

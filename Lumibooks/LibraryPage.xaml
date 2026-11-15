@@ -95,6 +95,7 @@
                 <AppBarButton.Icon><FontIcon Glyph="&#xE8A4;" /></AppBarButton.Icon>
             </AppBarButton>
             <CommandBar.SecondaryCommands>
+                <AppBarButton Label="Statistics" Click="OnStats" />
                 <AppBarButton Label="New shelf" Click="OnNewShelf" />
                 <AppBarButton x:Name="RenameShelfButton" Label="Rename shelf" Click="OnRenameShelf" Visibility="Collapsed" />
                 <AppBarButton x:Name="DeleteShelfButton" Label="Delete shelf" Click="OnDeleteShelf" Visibility="Collapsed" />

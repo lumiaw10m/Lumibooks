@@ -2,6 +2,7 @@
 #include "ReaderPage.xaml.h"
 #include "Settings.h"
 #include "Formats.h"
+#include "Stats.h"
 
 using namespace Lumibooks;
 using namespace concurrency;
@@ -65,7 +66,7 @@ static int TagOf(Object^ sender)
     return tag ? _wtoi(tag->Data()) : 0;
 }
 
-ReaderPage::ReaderPage() : chapter(0), page(0), pages(1), selStart(-1), selEnd(-1), editId(-1), loading(true), resumeSpeech(false), noteShown(false), searchToken(0), lookupToken(0)
+ReaderPage::ReaderPage() : chapter(0), page(0), pages(1), selStart(-1), selEnd(-1), editId(-1), loading(true), resumeSpeech(false), noteShown(false), statKey(-1), searchToken(0), lookupToken(0)
 {
     InitializeComponent();
     FillTargets(TargetBox);
@@ -79,6 +80,7 @@ ReaderPage::ReaderPage() : chapter(0), page(0), pages(1), selStart(-1), selEnd(-
     MarginSlider->Value = s.margin;
     VMarginSlider->Value = s.vmargin;
     JustifySwitch->IsOn = s.justify;
+    AnimSwitch->IsOn = s.animate;
     HyphenSwitch->IsOn = s.hyphen;
     SpacingSwitch->IsOn = s.spacing;
     ParaSlider->Value = s.para;
@@ -140,6 +142,8 @@ void ReaderPage::OnNavigatedTo(NavigationEventArgs^ e)
 {
     book = safe_cast<Book^>(e->Parameter);
     book->Opened = (double)_time64(nullptr);
+    statKey = -1;
+    Stats::Begin(book->Id);
     ReaderPage^ me = this;
     shareToken = Windows::ApplicationModel::DataTransfer::DataTransferManager::GetForCurrentView()->DataRequested +=
         ref new TypedEventHandler<Windows::ApplicationModel::DataTransfer::DataTransferManager^, Windows::ApplicationModel::DataTransfer::DataRequestedEventArgs^>(
@@ -185,6 +189,7 @@ void ReaderPage::OnNavigatedFrom(NavigationEventArgs^ e)
     if (speech) speech->Stop();
     speech = nullptr;
     ApplicationView::GetForCurrentView()->ExitFullScreenMode();
+    Stats::End();
     Library::Save();
 }
 
@@ -270,6 +275,7 @@ void ReaderPage::SettingsChanged()
     s.margin = (int)MarginSlider->Value;
     s.vmargin = (int)VMarginSlider->Value;
     s.justify = JustifySwitch->IsOn;
+    s.animate = AnimSwitch->IsOn;
     s.hyphen = HyphenSwitch->IsOn;
     s.spacing = SpacingSwitch->IsOn;
     s.para = (int)ParaSlider->Value;
@@ -304,6 +310,13 @@ void ReaderPage::OnScriptNotify(Object^ sender, NotifyEventArgs^ e)
         book->ChapterIndex = chapter;
         book->ChapterProgress = n > 1 ? (double)i / (n - 1) : 0;
         if (epub && !epub->spine.empty()) book->Percent = std::min(100.0, (chapter + (double)(i + 1) / n) * 100.0 / epub->spine.size());
+        long long key = (long long)chapter * 100000 + i;
+        if (key != statKey)
+        {
+            if (statKey >= 0) Stats::Turn();
+            statKey = key;
+        }
+        if (book->Percent >= 99.5) Stats::Finish(book->Id);
         Library::Save();
         UpdateStatus();
         UpdateBookmark();

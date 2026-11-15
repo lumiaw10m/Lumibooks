@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Library.h"
 #include "Formats.h"
+#include "Stats.h"
 
 using namespace Lumibooks;
 using namespace concurrency;
@@ -289,6 +290,7 @@ void Library::Remove(Book^ book)
 {
     unsigned int i;
     if (Books()->IndexOf(book, &i)) Books()->RemoveAt(i);
+    Stats::Forget(book->Id);
     Save();
     for (auto p : { book->FilePath, book->CoverPath, "notes/" + book->Id + ".json" })
     {

@@ -55,6 +55,7 @@ void Settings::Load()
     justify = ReadBool(v, "justify", justify);
     hyphen = ReadBool(v, "hyphen", hyphen);
     spacing = ReadBool(v, "spacing", spacing);
+    animate = ReadBool(v, "animate", animate);
     para = ReadInt(v, "para", para, 0, 20);
     indent = ReadInt(v, "indent", indent, 0, 30);
     theme = ReadInt(v, "theme", theme, 0, CustomTheme);
@@ -83,6 +84,7 @@ void Settings::Save() const
     put("justify", justify);
     put("hyphen", hyphen);
     put("spacing", spacing);
+    put("animate", animate);
     put("para", para);
     put("indent", indent);
     put("theme", theme);
@@ -100,8 +102,8 @@ String^ Settings::Json() const
 {
     wchar_t s[512];
     swprintf_s(s, L"{\"font\":\"%s\",\"size\":%d,\"lh\":%d.%d,\"ls\":%d,\"bold\":%s,\"margin\":%d,\"vmargin\":%d,"
-        L"\"justify\":%s,\"hyph\":%s,\"para\":%d,\"indent\":%d,\"bg\":\"#%06x\",\"fg\":\"#%06x\"}",
+        L"\"justify\":%s,\"hyph\":%s,\"para\":%d,\"indent\":%d,\"bg\":\"#%06x\",\"fg\":\"#%06x\",\"anim\":%s}",
         font ? Fonts[font] : L"", size, lineHeight / 10, lineHeight % 10, letter, bold ? L"true" : L"false", margin, vmargin,
-        justify ? L"true" : L"false", hyphen ? L"true" : L"false", spacing ? para : -1, spacing ? indent : -1, Bg(), Fg());
+        justify ? L"true" : L"false", hyphen ? L"true" : L"false", spacing ? para : -1, spacing ? indent : -1, Bg(), Fg(), animate ? L"true" : L"false");
     return ref new String(s);
 }

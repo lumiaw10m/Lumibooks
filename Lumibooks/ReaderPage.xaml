@@ -78,6 +78,7 @@
                                             <Slider x:Name="MarginSlider" Header="Side margins" Minimum="0" Maximum="48" StepFrequency="4" ValueChanged="OnSliderChanged" />
                                             <Slider x:Name="VMarginSlider" Header="Top and bottom margins" Minimum="0" Maximum="64" StepFrequency="4" ValueChanged="OnSliderChanged" />
                                             <ToggleSwitch x:Name="JustifySwitch" Header="Justify" Toggled="OnToggled" />
+                                            <ToggleSwitch x:Name="AnimSwitch" Header="Page turn animation" Toggled="OnToggled" />
                                             <ToggleSwitch x:Name="HyphenSwitch" Header="Hyphenation" Toggled="OnToggled" />
                                             <ToggleSwitch x:Name="SpacingSwitch" Header="Override paragraph spacing" Toggled="OnToggled" />
                                             <Slider x:Name="ParaSlider" Header="Space between paragraphs" Minimum="0" Maximum="20" StepFrequency="1" ValueChanged="OnSliderChanged" />

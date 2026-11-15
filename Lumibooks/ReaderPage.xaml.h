@@ -50,6 +50,7 @@ namespace Lumibooks
         int chapter, page, pages, selStart, selEnd, editId;
         std::wstring selText;
         bool loading, resumeSpeech, noteShown;
+        long long statKey;
         int searchToken, lookupToken;
         std::wstring shareText;
         Windows::Foundation::EventRegistrationToken shareToken;

@@ -2,6 +2,7 @@
 #include "FixedReaderPage.xaml.h"
 #include <robuffer.h>
 #include <cmath>
+#include "Stats.h"
 
 using namespace Lumibooks;
 using namespace concurrency;
@@ -46,6 +47,7 @@ void FixedReaderPage::OnNavigatedTo(NavigationEventArgs^ e)
 {
     book = safe_cast<Book^>(e->Parameter);
     book->Opened = (double)_time64(nullptr);
+    Stats::Begin(book->Id);
     ApplicationView::GetForCurrentView()->TryEnterFullScreenMode();
     if (FormatOf(book->FilePath->Data()) == Format::Cbz)
     {
@@ -83,6 +85,7 @@ void FixedReaderPage::OnNavigatedTo(NavigationEventArgs^ e)
             int start = self->book->ChapterIndex;
             if (start < 0 || start >= d->Pages()) start = 0;
             self->book->jump.clear();
+            self->statPage = start;
             self->ready = true;
             if (self->Pages->SelectedIndex == start) self->Show(start);
             else self->Pages->SelectedIndex = start;
@@ -291,6 +294,7 @@ void FixedReaderPage::OnMarkRightTapped(Object^ sender, RightTappedRoutedEventAr
 void FixedReaderPage::OnNavigatedFrom(NavigationEventArgs^ e)
 {
     ApplicationView::GetForCurrentView()->ExitFullScreenMode();
+    Stats::End();
     Library::Save();
     ready = false;
     for (auto v : views)
@@ -387,6 +391,9 @@ void FixedReaderPage::OnPageChanged(Object^ sender, SelectionChangedEventArgs^ e
     book->ChapterIndex = i;
     book->ChapterProgress = doc->Pages() > 1 ? (double)i / (doc->Pages() - 1) : 0;
     book->Percent = (i + 1) * 100.0 / doc->Pages();
+    if (statPage >= 0 && statPage != i) Stats::Turn();
+    statPage = i;
+    if (book->Percent >= 99.5) Stats::Finish(book->Id);
     Library::Save();
     UpdateStatus();
     UpdateBookmark();

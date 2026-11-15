@@ -309,6 +309,29 @@ std::shared_ptr<Epub> Epub::Open(std::vector<uint8_t>&& data)
         }
     }
     if (e->spine.empty()) return nullptr;
+    for (size_t s = 0; e->coverPath.empty() && s < e->spine.size() && s < 2; s++)
+    {
+        std::vector<uint8_t> page;
+        if (!e->Read(e->spine[s], page)) continue;
+        std::string h(page.begin(), page.end());
+        for (size_t p = 0; (p = h.find('<', p)) != std::string::npos; p++)
+        {
+            bool img = _strnicmp(h.c_str() + p, "<img", 4) == 0, svg = _strnicmp(h.c_str() + p, "<image", 6) == 0;
+            if (!img && !svg) continue;
+            size_t end = h.find('>', p);
+            if (end == std::string::npos) break;
+            std::string tag = h.substr(p, end - p);
+            size_t a = std::string::npos;
+            for (const char* key : { " src=", "href=" })
+                if ((a = tag.find(key)) != std::string::npos) { a += strlen(key); break; }
+            if (a == std::string::npos || a >= tag.size()) continue;
+            char q = tag[a];
+            size_t z = (q == '"' || q == '\'') ? tag.find(q, a + 1) : tag.find_first_of(" />", a);
+            std::string href = tag.substr(q == '"' || q == '\'' ? a + 1 : a, (z == std::string::npos ? tag.size() : z) - (q == '"' || q == '\'' ? a + 1 : a));
+            std::string path = JoinPath(DirOf(e->spine[s]), UrlDecode(href));
+            if (IsImage(path)) { e->coverPath = path; break; }
+        }
+    }
     if (!tocId.empty() && items.count(tocId)) ncxPath = items[tocId];
     if (!navPath.empty()) e->ParseNav(navPath);
     if (e->toc.empty() && !ncxPath.empty()) e->ParseNcx(ncxPath);

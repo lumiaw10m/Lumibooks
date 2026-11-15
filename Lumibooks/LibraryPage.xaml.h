@@ -33,6 +33,7 @@ namespace Lumibooks
         void OnItemClick(Platform::Object^ sender, Windows::UI::Xaml::Controls::ItemClickEventArgs^ e);
         void OnImport(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
         void OnNotes(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
+        void OnStats(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
         void OnSearch(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
         void OnSearchChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::TextChangedEventArgs^ e);
         void OnSearchKey(Platform::Object^ sender, Windows::UI::Xaml::Input::KeyRoutedEventArgs^ e);
