@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "LibraryPage.xaml.h"
-#include "ReaderPage.xaml.h"
+#include "FixedReaderPage.xaml.h"
 
 using namespace Lumibooks;
 using namespace concurrency;
@@ -145,7 +145,8 @@ void LibraryPage::OnDeleteShelf(Object^ sender, RoutedEventArgs^ e)
 
 void LibraryPage::OnItemClick(Object^ sender, ItemClickEventArgs^ e)
 {
-    this->Frame->Navigate(TypeName(ReaderPage::typeid), e->ClickedItem);
+    auto book = safe_cast<Book^>(e->ClickedItem);
+    this->Frame->Navigate(ReaderFor(book), book);
 }
 
 void LibraryPage::OnImport(Object^ sender, RoutedEventArgs^ e)
@@ -153,7 +154,7 @@ void LibraryPage::OnImport(Object^ sender, RoutedEventArgs^ e)
     auto picker = ref new FileOpenPicker();
     picker->SuggestedStartLocation = PickerLocationId::DocumentsLibrary;
     picker->ViewMode = PickerViewMode::List;
-    picker->FileTypeFilter->Append(".epub");
+    for (int i = 0; i < ImportTypeCount; i++) picker->FileTypeFilter->Append(ref new String(ImportTypes[i]));
     auto shelf = Current();
     LibraryPage^ self = this;
     create_task(picker->PickMultipleFilesAsync()).then([shelf](IVectorView<StorageFile^>^ files)

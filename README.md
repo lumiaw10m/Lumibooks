@@ -3,7 +3,8 @@
 A light, native eBook reader for Windows 10 Mobile, written in C++/CX.
 
 - Targets Windows 10 Mobile 15063 (Lumia 950) and desktop x86
-- EPUB first; PDF, CBZ, MOBI and FB2 to follow through MuPDF
+- EPUB, FB2 and MOBI in a reflowing reader; PDF, XPS and CBZ rendered with MuPDF
+- Library with favourites and shelves
 - Read aloud using the system voices, with sentence highlighting and lock-screen controls
 - Fonts, size, weight, letter and line spacing, margins, paragraph spacing, indent, hyphenation
 - Day, sepia, night, black and custom color themes, plus a night light filter
@@ -29,3 +30,8 @@ Use `-Platform x86` for a desktop build, or open `Lumibooks.sln` in Visual Studi
 ## Third-party
 
 - [miniz](https://github.com/richgel999/miniz) (MIT)
+- [MuPDF](https://mupdf.com) 1.28.6 (AGPL-3.0), built without its HTML engine, JavaScript, OCR and extra fonts, with FreeType, jbig2dec, libjpeg, OpenJPEG and zlib
+
+## License
+
+Lumibooks is licensed under the GNU Affero General Public License v3.0, the same license as MuPDF. See [LICENSE](LICENSE).

@@ -102,6 +102,11 @@
     <ClInclude Include="ReadAloud.h" />
     <ClInclude Include="Annotations.h" />
     <ClInclude Include="ThirdParty\miniz\miniz.h" />
+    <ClInclude Include="FixedReaderPage.xaml.h">
+      <DependentUpon>FixedReaderPage.xaml</DependentUpon>
+    </ClInclude>
+    <ClInclude Include="Formats.h" />
+    <ClInclude Include="Mu.h" />
   </ItemGroup>
   <ItemGroup>
     <ApplicationDefinition Include="App.xaml">
@@ -111,6 +116,9 @@
       <SubType>Designer</SubType>
     </Page>
     <Page Include="ReaderPage.xaml">
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="FixedReaderPage.xaml">
       <SubType>Designer</SubType>
     </Page>
   </ItemGroup>
@@ -153,12 +161,29 @@
     <ClCompile Include="Settings.cpp" />
     <ClCompile Include="ReadAloud.cpp" />
     <ClCompile Include="Annotations.cpp" />
+    <ClCompile Include="FixedReaderPage.xaml.cpp">
+      <DependentUpon>FixedReaderPage.xaml</DependentUpon>
+    </ClCompile>
+    <ClCompile Include="Formats.cpp" />
+    <ClCompile Include="Mu.c">
+      <CompileAsWinRT>false</CompileAsWinRT>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <CompileAs>CompileAsC</CompileAs>
+      <AdditionalIncludeDirectories>ThirdParty\mupdf\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
     <ClCompile Include="ThirdParty\miniz\miniz.c">
       <CompileAsWinRT>false</CompileAsWinRT>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <CompileAs>CompileAsC</CompileAs>
       <DisableSpecificWarnings>4244;4267;4334;4996;%(DisableSpecificWarnings)</DisableSpecificWarnings>
     </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="ThirdParty\mupdf\mupdf.vcxproj">
+      <Project>{8E3B5C2A-6F1D-4E7A-9B0C-3D5F7A1E2B46}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+      <LinkLibraryDependencies>true</LinkLibraryDependencies>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets" />

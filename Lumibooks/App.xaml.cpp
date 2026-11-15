@@ -3,6 +3,7 @@
 #include "Settings.h"
 #include "LibraryPage.xaml.h"
 #include "ReaderPage.xaml.h"
+#include "FixedReaderPage.xaml.h"
 
 using namespace Lumibooks;
 using namespace concurrency;
@@ -38,10 +39,25 @@ Frame^ App::EnsureFrame()
     return frame;
 }
 
+static void ImportAndOpen(Frame^ frame, task<StorageFile^> file)
+{
+    file.then([](StorageFile^ f) { return Library::Import(f); }).then([frame](task<Book^> t)
+    {
+        try { auto b = t.get(); frame->Navigate(ReaderFor(b), b); }
+        catch (Exception^ ex) { (ref new MessageDialog(ex->Message, "Can't open book"))->ShowAsync(); }
+    });
+}
+
 void App::OnLaunched(LaunchActivatedEventArgs^ e)
 {
-    EnsureFrame();
+    auto frame = EnsureFrame();
     Window::Current->Activate();
+    std::wstring arg = e->Arguments ? e->Arguments->Data() : L"";
+    if (arg.compare(0, 7, L"import:") == 0)
+    {
+        auto path = ApplicationData::Current->LocalFolder->Path + "\\inbox\\" +ref new String(arg.c_str() + 7);
+        ImportAndOpen(frame, create_task(StorageFile::GetFileFromPathAsync(path)));
+    }
 }
 
 void App::OnFileActivated(FileActivatedEventArgs^ e)
@@ -50,12 +66,7 @@ void App::OnFileActivated(FileActivatedEventArgs^ e)
     Window::Current->Activate();
     if (!e->Files->Size) return;
     auto file = dynamic_cast<StorageFile^>(e->Files->GetAt(0));
-    if (!file) return;
-    Library::Import(file).then([frame](task<Book^> t)
-    {
-        try { frame->Navigate(TypeName(ReaderPage::typeid), t.get()); }
-        catch (Exception^ ex) { (ref new MessageDialog(ex->Message, "Can't open book"))->ShowAsync(); }
-    });
+    if (file) ImportAndOpen(frame, task_from_result(file));
 }
 
 void App::OnBackRequested(Object^ sender, BackRequestedEventArgs^ e)

@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "Library.h"
-#include "Epub.h"
+#include "Formats.h"
 
 using namespace Lumibooks;
 using namespace concurrency;
@@ -191,15 +191,49 @@ task<Book^> Library::Import(StorageFile^ file)
     auto ui = task_continuation_context::use_current();
     String^ name = file->DisplayName;
     String^ id = NewId();
+    Format fmt = FormatOf(file->Name->Data());
+    String^ fileName = id + ref new String(Extension(fmt));
     return Load().then([file]
     {
         return FileIO::ReadBufferAsync(file);
     }, ui).then([=](IBuffer^ buf) -> task<Book^>
     {
-        auto epub = Epub::Open(FromBuffer(buf));
-        if (!epub) throw ref new FailureException("This file is not a readable EPUB.");
-        String^ title = epub->title.empty() ? name : Str(epub->title);
-        String^ author = Str(epub->author);
+        if (fmt == Format::Unknown) throw ref new FailureException("This file type isn't supported.");
+        std::wstring t, a;
+        std::vector<uint8_t> data;
+        std::string ext = ".png";
+        if (IsFixed(fmt))
+        {
+            bool locked = false;
+            auto doc = FixedDoc::Open(FromBuffer(buf), fmt, &locked);
+            if (!doc) throw ref new FailureException(locked ? "Password-protected documents aren't supported yet." : "This document can't be opened.");
+            t = doc->title;
+            a = doc->author;
+            doc->Cover(208, data);
+        }
+        else
+        {
+            auto epub = OpenReflow(FromBuffer(buf), fmt);
+            if (!epub)
+            {
+                String^ why = fmt == Format::Mobi ? "This MOBI book can't be opened. Only DRM-free MOBI files with standard compression are supported." : "This book can't be opened.";
+                if (fmt == Format::Mobi && *mu_error()) why += " (" + Str(Wide(mu_error(), strlen(mu_error()))) + ")";
+                throw ref new FailureException(why);
+            }
+            t = epub->title;
+            a = epub->author;
+            if (!epub->coverPath.empty() && epub->Read(epub->coverPath, data) && !data.empty())
+            {
+                std::string p = epub->coverPath;
+                size_t dot = p.rfind('.');
+                ext = dot == std::string::npos ? ".jpg" : p.substr(dot);
+                for (auto& c : ext) c = (char)tolower((unsigned char)c);
+            }
+            else data.clear();
+        }
+        if (_wcsicmp(t.c_str(), file->Name->Data()) == 0) t.clear();
+        String^ title = t.empty() ? name : Str(t);
+        String^ author = Str(a);
         for (unsigned int i = 0; i < Books()->Size; i++)
         {
             auto b = Books()->GetAt(i);
@@ -210,25 +244,20 @@ task<Book^> Library::Import(StorageFile^ file)
         book->Id = id;
         book->Title = title;
         book->Author = author;
-        book->FilePath = "books/" + id + ".epub";
+        book->FilePath = "books/" + fileName;
         book->CoverPath = "";
         IBuffer^ cover = nullptr;
         String^ coverName = nullptr;
-        std::vector<uint8_t> data;
-        if (!epub->coverPath.empty() && epub->Read(epub->coverPath, data) && !data.empty())
+        if (!data.empty())
         {
-            std::string p = epub->coverPath;
-            size_t dot = p.rfind('.');
-            std::string ext = dot == std::string::npos ? ".jpg" : p.substr(dot);
-            for (auto& c : ext) c = (char)tolower((unsigned char)c);
             coverName = id + Str(Wide(ext.c_str(), ext.size()));
             book->CoverPath = "covers/" + coverName;
             cover = ToBuffer(data.data(), data.size());
         }
         return create_task(local->CreateFolderAsync("books", CreationCollisionOption::OpenIfExists))
-            .then([file, id](StorageFolder^ dir)
+            .then([file, fileName](StorageFolder^ dir)
         {
-            return file->CopyAsync(dir, id + ".epub", NameCollisionOption::ReplaceExisting);
+            return file->CopyAsync(dir, fileName, NameCollisionOption::ReplaceExisting);
         }).then([local, cover, coverName](StorageFile^) -> task<void>
         {
             if (!cover) return task_from_result();

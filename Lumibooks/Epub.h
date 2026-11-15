@@ -1,5 +1,6 @@
 #pragma once
 #include "miniz.h"
+#include <map>
 
 namespace Lumibooks
 {
@@ -22,6 +23,8 @@ namespace Lumibooks
     public:
         ~Epub();
         static std::shared_ptr<Epub> Open(std::vector<uint8_t>&& data);
+        static std::shared_ptr<Epub> Create() { return std::shared_ptr<Epub>(new Epub()); }
+        void Add(const std::string& path, std::vector<uint8_t>&& data) { files[path] = std::move(data); }
         bool Read(const std::string& path, std::vector<uint8_t>& out);
         int SpineIndex(const std::string& path) const;
 
@@ -37,6 +40,7 @@ namespace Lumibooks
         void ParseNcx(const std::string& path);
 
         std::vector<uint8_t> buf;
+        std::map<std::string, std::vector<uint8_t>> files;
         mz_zip_archive zip = {};
         bool open = false;
         std::mutex lock;

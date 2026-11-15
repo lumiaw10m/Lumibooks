@@ -1,0 +1,418 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="16.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{8E3B5C2A-6F1D-4E7A-9B0C-3D5F7A1E2B46}</ProjectGuid>
+    <RootNamespace>mupdf</RootNamespace>
+    <DefaultLanguage>en-US</DefaultLanguage>
+    <MinimumVisualStudioVersion>16.0</MinimumVisualStudioVersion>
+    <AppContainerApplication>true</AppContainerApplication>
+    <ApplicationType>Windows Store</ApplicationType>
+    <ApplicationTypeRevision>10.0</ApplicationTypeRevision>
+    <WindowsTargetPlatformVersion Condition="'$(WindowsTargetPlatformVersion)' == ''">10.0.19041.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformMinVersion>10.0.15063.0</WindowsTargetPlatformMinVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|ARM"><Configuration>Debug</Configuration><Platform>ARM</Platform></ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|Win32"><Configuration>Debug</Configuration><Platform>Win32</Platform></ProjectConfiguration>
+    <ProjectConfiguration Include="Release|ARM"><Configuration>Release</Configuration><Platform>ARM</Platform></ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32"><Configuration>Release</Configuration><Platform>Win32</Platform></ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <PlatformToolset>v142</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)'=='Debug'" Label="Configuration">
+    <UseDebugLibraries>true</UseDebugLibraries>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)'=='Release'" Label="Configuration">
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings" />
+  <ImportGroup Label="PropertySheets" />
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <IntDir>$(ProjectDir)obj\$(Platform)\$(Configuration)\</IntDir>
+    <OutDir>$(ProjectDir)lib\$(Platform)\$(Configuration)\</OutDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <CompileAsWinRT>false</CompileAsWinRT>
+      <CompileAs>CompileAsC</CompileAs>
+      <SDLCheck>false</SDLCheck>
+      <ObjectFileName>$(IntDir)%(RelativeDir)</ObjectFileName>
+      <AdditionalIncludeDirectories>include;scripts\freetype;scripts\libjpeg;thirdparty\jbig2dec;thirdparty\libjpeg;thirdparty\openjpeg\src\lib\openjp2;thirdparty\zlib;thirdparty\freetype\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>FZ_ENABLE_SVG=0;FZ_ENABLE_HTML=0;FZ_ENABLE_EPUB=0;FZ_ENABLE_FB2=0;FZ_ENABLE_MOBI=0;FZ_ENABLE_OFFICE=0;FZ_ENABLE_TXT=0;FZ_ENABLE_MD=0;FZ_ENABLE_HTML_ENGINE=0;FZ_ENABLE_OCR_OUTPUT=0;FZ_ENABLE_DOCX_OUTPUT=0;FZ_ENABLE_ODT_OUTPUT=0;FZ_ENABLE_ICC=0;FZ_ENABLE_BROTLI=0;FZ_ENABLE_JS=0;FZ_ENABLE_BARCODE=0;FZ_ENABLE_HYPHEN=0;TOFU;TOFU_CJK;TOFU_SIL;TOFU_EMOJI;TOFU_SYMBOL;TOFU_HISTORIC;TOFU_NOTO;OPJ_STATIC;FT2_BUILD_LIBRARY;FT_CONFIG_MODULES_H="slimftmodules.h";FT_CONFIG_OPTIONS_H="slimftoptions.h";_WINRT;verbose=-1;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <WarningLevel>TurnOffAllWarnings</WarningLevel>
+      <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)'=='Debug'">
+    <ClCompile><PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions></ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)'=='Release'">
+    <ClCompile>
+      <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <Optimization>MinSpace</Optimization>
+      <FavorSizeOrSpeed>Size</FavorSizeOrSpeed>
+      <WholeProgramOptimization>true</WholeProgramOptimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="source\cbz\mucbz.c" />
+    <ClCompile Include="source\cbz\muimg.c" />
+    <ClCompile Include="source\fitz\archive.c" />
+    <ClCompile Include="source\fitz\barcode.c" />
+    <ClCompile Include="source\fitz\bbox-device.c" />
+    <ClCompile Include="source\fitz\bidi-std.c" />
+    <ClCompile Include="source\fitz\bidi.c" />
+    <ClCompile Include="source\fitz\bitmap.c" />
+    <ClCompile Include="source\fitz\brotli.c" />
+    <ClCompile Include="source\fitz\buffer.c" />
+    <ClCompile Include="source\fitz\color-fast.c" />
+    <ClCompile Include="source\fitz\color-icc-create.c" />
+    <ClCompile Include="source\fitz\color-lcms.c" />
+    <ClCompile Include="source\fitz\colorspace.c" />
+    <ClCompile Include="source\fitz\compress.c" />
+    <ClCompile Include="source\fitz\compressed-buffer.c" />
+    <ClCompile Include="source\fitz\context.c" />
+    <ClCompile Include="source\fitz\crypt-aes.c" />
+    <ClCompile Include="source\fitz\crypt-arc4.c" />
+    <ClCompile Include="source\fitz\crypt-chacha20.c" />
+    <ClCompile Include="source\fitz\crypt-md5.c" />
+    <ClCompile Include="source\fitz\crypt-sha2.c" />
+    <ClCompile Include="source\fitz\cull-device.c" />
+    <ClCompile Include="source\fitz\deskew.c" />
+    <ClCompile Include="source\fitz\device.c" />
+    <ClCompile Include="source\fitz\directory.c" />
+    <ClCompile Include="source\fitz\document-all.c" />
+    <ClCompile Include="source\fitz\document.c" />
+    <ClCompile Include="source\fitz\draw-affine.c" />
+    <ClCompile Include="source\fitz\draw-blend.c" />
+    <ClCompile Include="source\fitz\draw-device.c" />
+    <ClCompile Include="source\fitz\draw-edge.c" />
+    <ClCompile Include="source\fitz\draw-edgebuffer.c" />
+    <ClCompile Include="source\fitz\draw-glyph.c" />
+    <ClCompile Include="source\fitz\draw-mesh.c" />
+    <ClCompile Include="source\fitz\draw-paint.c" />
+    <ClCompile Include="source\fitz\draw-path.c" />
+    <ClCompile Include="source\fitz\draw-rasterize.c" />
+    <ClCompile Include="source\fitz\draw-scale-simple.c" />
+    <ClCompile Include="source\fitz\draw-unpack.c" />
+    <ClCompile Include="source\fitz\encode-basic.c" />
+    <ClCompile Include="source\fitz\encode-fax.c" />
+    <ClCompile Include="source\fitz\encode-jpx.c" />
+    <ClCompile Include="source\fitz\encodings.c" />
+    <ClCompile Include="source\fitz\error.c" />
+    <ClCompile Include="source\fitz\filter-basic.c" />
+    <ClCompile Include="source\fitz\filter-brotli.c" />
+    <ClCompile Include="source\fitz\filter-dct.c" />
+    <ClCompile Include="source\fitz\filter-fax.c" />
+    <ClCompile Include="source\fitz\filter-flate.c" />
+    <ClCompile Include="source\fitz\filter-jbig2.c" />
+    <ClCompile Include="source\fitz\filter-leech.c" />
+    <ClCompile Include="source\fitz\filter-lzw.c" />
+    <ClCompile Include="source\fitz\filter-predict.c" />
+    <ClCompile Include="source\fitz\filter-sgi.c" />
+    <ClCompile Include="source\fitz\filter-thunder.c" />
+    <ClCompile Include="source\fitz\font.c" />
+    <ClCompile Include="source\fitz\ftoa.c" />
+    <ClCompile Include="source\fitz\geometry.c" />
+    <ClCompile Include="source\fitz\getopt.c" />
+    <ClCompile Include="source\fitz\glyph.c" />
+    <ClCompile Include="source\fitz\glyphbox.c" />
+    <ClCompile Include="source\fitz\gz-doc.c" />
+    <ClCompile Include="source\fitz\halftone.c" />
+    <ClCompile Include="source\fitz\harfbuzz.c" />
+    <ClCompile Include="source\fitz\hash.c" />
+    <ClCompile Include="source\fitz\heap.c" />
+    <ClCompile Include="source\fitz\hyphen.c" />
+    <ClCompile Include="source\fitz\image.c" />
+    <ClCompile Include="source\fitz\jmemcust.c" />
+    <ClCompile Include="source\fitz\json.c" />
+    <ClCompile Include="source\fitz\link.c" />
+    <ClCompile Include="source\fitz\list-device.c" />
+    <ClCompile Include="source\fitz\load-bmp.c" />
+    <ClCompile Include="source\fitz\load-gif.c" />
+    <ClCompile Include="source\fitz\load-jbig2.c" />
+    <ClCompile Include="source\fitz\load-jpeg.c" />
+    <ClCompile Include="source\fitz\load-jpx.c" />
+    <ClCompile Include="source\fitz\load-jxr.c" />
+    <ClCompile Include="source\fitz\load-png.c" />
+    <ClCompile Include="source\fitz\load-pnm.c" />
+    <ClCompile Include="source\fitz\load-psd.c" />
+    <ClCompile Include="source\fitz\load-tiff.c" />
+    <ClCompile Include="source\fitz\log.c" />
+    <ClCompile Include="source\fitz\memento.c" />
+    <ClCompile Include="source\fitz\memory.c" />
+    <ClCompile Include="source\fitz\noto.c" />
+    <ClCompile Include="source\fitz\ocr-device.c" />
+    <ClCompile Include="source\fitz\options.c" />
+    <ClCompile Include="source\fitz\outline.c" />
+    <ClCompile Include="source\fitz\output-cbz.c" />
+    <ClCompile Include="source\fitz\output-csv.c" />
+    <ClCompile Include="source\fitz\output-docx.c" />
+    <ClCompile Include="source\fitz\output-jpeg.c" />
+    <ClCompile Include="source\fitz\output-pcl.c" />
+    <ClCompile Include="source\fitz\output-pclm.c" />
+    <ClCompile Include="source\fitz\output-pdfocr.c" />
+    <ClCompile Include="source\fitz\output-png.c" />
+    <ClCompile Include="source\fitz\output-pnm.c" />
+    <ClCompile Include="source\fitz\output-ps.c" />
+    <ClCompile Include="source\fitz\output-psd.c" />
+    <ClCompile Include="source\fitz\output-pwg.c" />
+    <ClCompile Include="source\fitz\output-svg.c" />
+    <ClCompile Include="source\fitz\output.c" />
+    <ClCompile Include="source\fitz\path.c" />
+    <ClCompile Include="source\fitz\pixmap.c" />
+    <ClCompile Include="source\fitz\pool.c" />
+    <ClCompile Include="source\fitz\printf.c" />
+    <ClCompile Include="source\fitz\random.c" />
+    <ClCompile Include="source\fitz\regexp.c" />
+    <ClCompile Include="source\fitz\skew.c" />
+    <ClCompile Include="source\fitz\stext-boxer.c" />
+    <ClCompile Include="source\fitz\stext-classify.c" />
+    <ClCompile Include="source\fitz\stext-iterator.c" />
+    <ClCompile Include="source\fitz\stext-para.c" />
+    <ClCompile Include="source\fitz\stext-raft.c" />
+    <ClCompile Include="source\fitz\stext-table.c" />
+    <ClCompile Include="source\fitz\text-decoder.c" />
+    <ClCompile Include="source\fitz\uncfb.c" />
+    <ClCompile Include="source\fitz\unlibarchive.c" />
+    <ClCompile Include="source\fitz\subset-cff.c" />
+    <ClCompile Include="source\fitz\subset-ttf.c" />
+    <ClCompile Include="source\fitz\warp.c" />
+    <ClCompile Include="source\fitz\xml-write.c" />
+    <ClCompile Include="source\fitz\xmltext-device.c" />
+    <ClCompile Include="source\fitz\separation.c" />
+    <ClCompile Include="source\fitz\shade.c" />
+    <ClCompile Include="source\fitz\stext-device.c" />
+    <ClCompile Include="source\fitz\stext-output.c" />
+    <ClCompile Include="source\fitz\stext-search.c" />
+    <ClCompile Include="source\fitz\store.c" />
+    <ClCompile Include="source\fitz\stream-open.c" />
+    <ClCompile Include="source\fitz\stream-read.c" />
+    <ClCompile Include="source\fitz\string.c" />
+    <ClCompile Include="source\fitz\strtof.c" />
+    <ClCompile Include="source\fitz\svg-device.c" />
+    <ClCompile Include="source\fitz\test-device.c" />
+    <ClCompile Include="source\fitz\text.c" />
+    <ClCompile Include="source\fitz\time.c" />
+    <ClCompile Include="source\fitz\trace-device.c" />
+    <ClCompile Include="source\fitz\track-usage.c" />
+    <ClCompile Include="source\fitz\transition.c" />
+    <ClCompile Include="source\fitz\tree.c" />
+    <ClCompile Include="source\fitz\ucdn.c" />
+    <ClCompile Include="source\fitz\untar.c" />
+    <ClCompile Include="source\fitz\unzip.c" />
+    <ClCompile Include="source\fitz\util.c" />
+    <ClCompile Include="source\fitz\writer.c" />
+    <ClCompile Include="source\fitz\xml.c" />
+    <ClCompile Include="source\fitz\zip.c" />
+    <ClCompile Include="source\pdf\pdf-af.c" />
+    <ClCompile Include="source\pdf\pdf-annot.c" />
+    <ClCompile Include="source\pdf\pdf-appearance.c" />
+    <ClCompile Include="source\pdf\pdf-clean-file.c" />
+    <ClCompile Include="source\pdf\pdf-clean.c" />
+    <ClCompile Include="source\pdf\pdf-cmap-load.c" />
+    <ClCompile Include="source\pdf\pdf-cmap-parse.c" />
+    <ClCompile Include="source\pdf\pdf-cmap.c" />
+    <ClCompile Include="source\pdf\pdf-colorspace.c" />
+    <ClCompile Include="source\pdf\pdf-crypt.c" />
+    <ClCompile Include="source\pdf\pdf-device.c" />
+    <ClCompile Include="source\pdf\pdf-event.c" />
+    <ClCompile Include="source\pdf\pdf-font-add.c" />
+    <ClCompile Include="source\pdf\pdf-font.c" />
+    <ClCompile Include="source\pdf\pdf-form.c" />
+    <ClCompile Include="source\pdf\pdf-function.c" />
+    <ClCompile Include="source\pdf\pdf-graft.c" />
+    <ClCompile Include="source\pdf\pdf-image-rewriter.c" />
+    <ClCompile Include="source\pdf\pdf-image.c" />
+    <ClCompile Include="source\pdf\pdf-interpret.c" />
+    <ClCompile Include="source\pdf\pdf-js.c" />
+    <ClCompile Include="source\pdf\pdf-label.c" />
+    <ClCompile Include="source\pdf\pdf-layer.c" />
+    <ClCompile Include="source\pdf\pdf-layout.c" />
+    <ClCompile Include="source\pdf\pdf-lex.c" />
+    <ClCompile Include="source\pdf\pdf-link.c" />
+    <ClCompile Include="source\pdf\pdf-metrics.c" />
+    <ClCompile Include="source\pdf\pdf-nametree.c" />
+    <ClCompile Include="source\pdf\pdf-object.c" />
+    <ClCompile Include="source\pdf\pdf-op-buffer.c" />
+    <ClCompile Include="source\pdf\pdf-op-color.c" />
+    <ClCompile Include="source\pdf\pdf-op-filter.c" />
+    <ClCompile Include="source\pdf\pdf-op-run.c" />
+    <ClCompile Include="source\pdf\pdf-op-vectorize.c" />
+    <ClCompile Include="source\pdf\pdf-outline.c" />
+    <ClCompile Include="source\pdf\pdf-page.c" />
+    <ClCompile Include="source\pdf\pdf-parse.c" />
+    <ClCompile Include="source\pdf\pdf-pattern.c" />
+    <ClCompile Include="source\pdf\pdf-recolor.c" />
+    <ClCompile Include="source\pdf\pdf-repair.c" />
+    <ClCompile Include="source\pdf\pdf-resources.c" />
+    <ClCompile Include="source\pdf\pdf-run.c" />
+    <ClCompile Include="source\pdf\pdf-shade-recolor.c" />
+    <ClCompile Include="source\pdf\pdf-shade.c" />
+    <ClCompile Include="source\pdf\pdf-signature.c" />
+    <ClCompile Include="source\pdf\pdf-store.c" />
+    <ClCompile Include="source\pdf\pdf-stream.c" />
+    <ClCompile Include="source\pdf\pdf-struct.c" />
+    <ClCompile Include="source\pdf\pdf-subset.c" />
+    <ClCompile Include="source\pdf\pdf-type3.c" />
+    <ClCompile Include="source\pdf\pdf-unicode.c" />
+    <ClCompile Include="source\pdf\pdf-util.c" />
+    <ClCompile Include="source\pdf\pdf-write.c" />
+    <ClCompile Include="source\pdf\pdf-xobject.c" />
+    <ClCompile Include="source\pdf\pdf-xref.c" />
+    <ClCompile Include="source\pdf\pdf-zugferd.c" />
+    <ClCompile Include="source\xps\xps-common.c" />
+    <ClCompile Include="source\xps\xps-doc.c" />
+    <ClCompile Include="source\xps\xps-glyphs.c" />
+    <ClCompile Include="source\xps\xps-gradient.c" />
+    <ClCompile Include="source\xps\xps-image.c" />
+    <ClCompile Include="source\xps\xps-link.c" />
+    <ClCompile Include="source\xps\xps-outline.c" />
+    <ClCompile Include="source\xps\xps-path.c" />
+    <ClCompile Include="source\xps\xps-resource.c" />
+    <ClCompile Include="source\xps\xps-tile.c" />
+    <ClCompile Include="source\xps\xps-util.c" />
+    <ClCompile Include="source\xps\xps-zip.c" />
+    <ClCompile Include="source\html\mobi.c" />
+    <ClCompile Include="thirdparty\freetype\src\base\ftbase.c" />
+    <ClCompile Include="thirdparty\freetype\src\base\ftbbox.c" />
+    <ClCompile Include="thirdparty\freetype\src\base\ftbitmap.c" />
+    <ClCompile Include="thirdparty\freetype\src\base\ftdebug.c" />
+    <ClCompile Include="thirdparty\freetype\src\base\ftfstype.c" />
+    <ClCompile Include="thirdparty\freetype\src\base\ftgasp.c" />
+    <ClCompile Include="thirdparty\freetype\src\base\ftglyph.c" />
+    <ClCompile Include="thirdparty\freetype\src\base\ftinit.c" />
+    <ClCompile Include="thirdparty\freetype\src\base\ftstroke.c" />
+    <ClCompile Include="thirdparty\freetype\src\base\ftsynth.c" />
+    <ClCompile Include="thirdparty\freetype\src\base\ftsystem.c" />
+    <ClCompile Include="thirdparty\freetype\src\base\fttype1.c" />
+    <ClCompile Include="thirdparty\freetype\src\cff\cff.c" />
+    <ClCompile Include="thirdparty\freetype\src\cid\type1cid.c" />
+    <ClCompile Include="thirdparty\freetype\src\psaux\psaux.c" />
+    <ClCompile Include="thirdparty\freetype\src\pshinter\pshinter.c" />
+    <ClCompile Include="thirdparty\freetype\src\psnames\psnames.c" />
+    <ClCompile Include="thirdparty\freetype\src\raster\raster.c" />
+    <ClCompile Include="thirdparty\freetype\src\sfnt\sfnt.c" />
+    <ClCompile Include="thirdparty\freetype\src\smooth\smooth.c" />
+    <ClCompile Include="thirdparty\freetype\src\truetype\truetype.c" />
+    <ClCompile Include="thirdparty\freetype\src\type1\type1.c" />
+    <ClCompile Include="thirdparty\jbig2dec\jbig2.c" />
+    <ClCompile Include="thirdparty\jbig2dec\jbig2_arith.c" />
+    <ClCompile Include="thirdparty\jbig2dec\jbig2_arith_iaid.c" />
+    <ClCompile Include="thirdparty\jbig2dec\jbig2_arith_int.c" />
+    <ClCompile Include="thirdparty\jbig2dec\jbig2_generic.c" />
+    <ClCompile Include="thirdparty\jbig2dec\jbig2_halftone.c" />
+    <ClCompile Include="thirdparty\jbig2dec\jbig2_huffman.c" />
+    <ClCompile Include="thirdparty\jbig2dec\jbig2_hufftab.c" />
+    <ClCompile Include="thirdparty\jbig2dec\jbig2_image.c" />
+    <ClCompile Include="thirdparty\jbig2dec\jbig2_mmr.c" />
+    <ClCompile Include="thirdparty\jbig2dec\jbig2_page.c" />
+    <ClCompile Include="thirdparty\jbig2dec\jbig2_refinement.c" />
+    <ClCompile Include="thirdparty\jbig2dec\jbig2_segment.c" />
+    <ClCompile Include="thirdparty\jbig2dec\jbig2_symbol_dict.c" />
+    <ClCompile Include="thirdparty\jbig2dec\jbig2_text.c" />
+    <ClCompile Include="thirdparty\libjpeg\jcapimin.c" />
+    <ClCompile Include="thirdparty\libjpeg\jcapistd.c" />
+    <ClCompile Include="thirdparty\libjpeg\jcarith.c" />
+    <ClCompile Include="thirdparty\libjpeg\jccoefct.c" />
+    <ClCompile Include="thirdparty\libjpeg\jccolor.c" />
+    <ClCompile Include="thirdparty\libjpeg\jcdctmgr.c" />
+    <ClCompile Include="thirdparty\libjpeg\jchuff.c" />
+    <ClCompile Include="thirdparty\libjpeg\jcinit.c" />
+    <ClCompile Include="thirdparty\libjpeg\jcmainct.c" />
+    <ClCompile Include="thirdparty\libjpeg\jcmarker.c" />
+    <ClCompile Include="thirdparty\libjpeg\jcmaster.c" />
+    <ClCompile Include="thirdparty\libjpeg\jcparam.c" />
+    <ClCompile Include="thirdparty\libjpeg\jcprepct.c" />
+    <ClCompile Include="thirdparty\libjpeg\jcsample.c" />
+    <ClCompile Include="thirdparty\libjpeg\jaricom.c" />
+    <ClCompile Include="thirdparty\libjpeg\jcomapi.c" />
+    <ClCompile Include="thirdparty\libjpeg\jdapimin.c" />
+    <ClCompile Include="thirdparty\libjpeg\jdapistd.c" />
+    <ClCompile Include="thirdparty\libjpeg\jdarith.c" />
+    <ClCompile Include="thirdparty\libjpeg\jdatadst.c" />
+    <ClCompile Include="thirdparty\libjpeg\jdatasrc.c" />
+    <ClCompile Include="thirdparty\libjpeg\jdcoefct.c" />
+    <ClCompile Include="thirdparty\libjpeg\jdcolor.c" />
+    <ClCompile Include="thirdparty\libjpeg\jddctmgr.c" />
+    <ClCompile Include="thirdparty\libjpeg\jdhuff.c" />
+    <ClCompile Include="thirdparty\libjpeg\jdinput.c" />
+    <ClCompile Include="thirdparty\libjpeg\jdmainct.c" />
+    <ClCompile Include="thirdparty\libjpeg\jdmarker.c" />
+    <ClCompile Include="thirdparty\libjpeg\jdmaster.c" />
+    <ClCompile Include="thirdparty\libjpeg\jdmerge.c" />
+    <ClCompile Include="thirdparty\libjpeg\jdpostct.c" />
+    <ClCompile Include="thirdparty\libjpeg\jdsample.c" />
+    <ClCompile Include="thirdparty\libjpeg\jdtrans.c" />
+    <ClCompile Include="thirdparty\libjpeg\jerror.c" />
+    <ClCompile Include="thirdparty\libjpeg\jfdctflt.c" />
+    <ClCompile Include="thirdparty\libjpeg\jfdctfst.c" />
+    <ClCompile Include="thirdparty\libjpeg\jfdctint.c" />
+    <ClCompile Include="thirdparty\libjpeg\jidctflt.c" />
+    <ClCompile Include="thirdparty\libjpeg\jidctfst.c" />
+    <ClCompile Include="thirdparty\libjpeg\jidctint.c" />
+    <ClCompile Include="thirdparty\libjpeg\jmemmgr.c" />
+    <ClCompile Include="thirdparty\libjpeg\jquant1.c" />
+    <ClCompile Include="thirdparty\libjpeg\jquant2.c" />
+    <ClCompile Include="thirdparty\libjpeg\jutils.c" />
+    <ClCompile Include="thirdparty\openjpeg\src\lib\openjp2\bio.c" />
+    <ClCompile Include="thirdparty\openjpeg\src\lib\openjp2\cio.c" />
+    <ClCompile Include="thirdparty\openjpeg\src\lib\openjp2\dwt.c" />
+    <ClCompile Include="thirdparty\openjpeg\src\lib\openjp2\event.c" />
+    <ClCompile Include="thirdparty\openjpeg\src\lib\openjp2\function_list.c" />
+    <ClCompile Include="thirdparty\openjpeg\src\lib\openjp2\ht_dec.c" />
+    <ClCompile Include="thirdparty\openjpeg\src\lib\openjp2\image.c" />
+    <ClCompile Include="thirdparty\openjpeg\src\lib\openjp2\invert.c" />
+    <ClCompile Include="thirdparty\openjpeg\src\lib\openjp2\j2k.c" />
+    <ClCompile Include="thirdparty\openjpeg\src\lib\openjp2\jp2.c" />
+    <ClCompile Include="thirdparty\openjpeg\src\lib\openjp2\mct.c" />
+    <ClCompile Include="thirdparty\openjpeg\src\lib\openjp2\mqc.c" />
+    <ClCompile Include="thirdparty\openjpeg\src\lib\openjp2\openjpeg.c" />
+    <ClCompile Include="thirdparty\openjpeg\src\lib\openjp2\pi.c" />
+    <ClCompile Include="thirdparty\openjpeg\src\lib\openjp2\sparse_array.c" />
+    <ClCompile Include="thirdparty\openjpeg\src\lib\openjp2\t1.c" />
+    <ClCompile Include="thirdparty\openjpeg\src\lib\openjp2\t2.c" />
+    <ClCompile Include="thirdparty\openjpeg\src\lib\openjp2\tcd.c" />
+    <ClCompile Include="thirdparty\openjpeg\src\lib\openjp2\tgt.c" />
+    <ClCompile Include="thirdparty\openjpeg\src\lib\openjp2\thread.c" />
+    <ClCompile Include="thirdparty\zlib\adler32.c" />
+    <ClCompile Include="thirdparty\zlib\compress.c" />
+    <ClCompile Include="thirdparty\zlib\crc32.c" />
+    <ClCompile Include="thirdparty\zlib\deflate.c" />
+    <ClCompile Include="thirdparty\zlib\inffast.c" />
+    <ClCompile Include="thirdparty\zlib\inflate.c" />
+    <ClCompile Include="thirdparty\zlib\inftrees.c" />
+    <ClCompile Include="thirdparty\zlib\trees.c" />
+    <ClCompile Include="thirdparty\zlib\uncompr.c" />
+    <ClCompile Include="thirdparty\zlib\zutil.c" />
+    <ClCompile Include="generated\resources\fonts\urw\Dingbats.cff.c" />
+    <ClCompile Include="generated\resources\fonts\urw\NimbusBoxes-Regular.cff.c" />
+    <ClCompile Include="generated\resources\fonts\urw\NimbusMonoPS-Bold.cff.c" />
+    <ClCompile Include="generated\resources\fonts\urw\NimbusMonoPS-BoldItalic.cff.c" />
+    <ClCompile Include="generated\resources\fonts\urw\NimbusMonoPS-Italic.cff.c" />
+    <ClCompile Include="generated\resources\fonts\urw\NimbusMonoPS-Regular.cff.c" />
+    <ClCompile Include="generated\resources\fonts\urw\NimbusRoman-Bold.cff.c" />
+    <ClCompile Include="generated\resources\fonts\urw\NimbusRoman-BoldItalic.cff.c" />
+    <ClCompile Include="generated\resources\fonts\urw\NimbusRoman-Italic.cff.c" />
+    <ClCompile Include="generated\resources\fonts\urw\NimbusRoman-Regular.cff.c" />
+    <ClCompile Include="generated\resources\fonts\urw\NimbusSans-Bold.cff.c" />
+    <ClCompile Include="generated\resources\fonts\urw\NimbusSans-BoldItalic.cff.c" />
+    <ClCompile Include="generated\resources\fonts\urw\NimbusSans-Italic.cff.c" />
+    <ClCompile Include="generated\resources\fonts\urw\NimbusSans-Regular.cff.c" />
+    <ClCompile Include="generated\resources\fonts\urw\StandardSymbolsPS.cff.c" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <Target Name="MarkupCompilePass1" />
+  <Target Name="MarkupCompilePass2" />
+  <Target Name="XamlPreCompile" />
+</Project>

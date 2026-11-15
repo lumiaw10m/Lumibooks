@@ -1,0 +1,61 @@
+<Page
+    x:Class="Lumibooks.FixedReaderPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Lumibooks"
+    RequestedTheme="Dark">
+
+    <Grid Background="#FF202020">
+        <FlipView x:Name="Pages" Background="Transparent" SelectionChanged="OnPageChanged">
+            <FlipView.ItemTemplate>
+                <DataTemplate x:DataType="local:PageView">
+                    <ScrollViewer x:Name="Viewer" ZoomMode="Enabled" MinZoomFactor="1" MaxZoomFactor="4"
+                                  HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Hidden"
+                                  HorizontalScrollMode="Auto" VerticalScrollMode="Auto"
+                                  HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
+                                  SizeChanged="OnViewerSizeChanged" ViewChanged="OnViewChanged"
+                                  Tapped="OnTapped" DoubleTapped="OnDoubleTapped">
+                        <Grid Width="{Binding ViewportWidth, ElementName=Viewer}" Height="{Binding ViewportHeight, ElementName=Viewer}">
+                            <Image Source="{x:Bind Image, Mode=OneWay}" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Grid>
+                    </ScrollViewer>
+                </DataTemplate>
+            </FlipView.ItemTemplate>
+        </FlipView>
+
+        <StackPanel x:Name="Bar" VerticalAlignment="Bottom" Visibility="Collapsed" Background="{ThemeResource SystemControlBackgroundChromeMediumBrush}">
+            <Grid Margin="12,8,12,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <Slider x:Name="PageSlider" Minimum="1" StepFrequency="1" IsThumbToolTipEnabled="True"
+                        PointerCaptureLost="OnSliderDone" KeyUp="OnSliderKey" />
+                <TextBlock x:Name="Status" Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center" Style="{StaticResource CaptionTextBlockStyle}" />
+            </Grid>
+            <CommandBar Background="Transparent">
+                <AppBarButton x:Name="ContentsButton" Label="Contents">
+                    <AppBarButton.Icon><FontIcon Glyph="&#xE8FD;" /></AppBarButton.Icon>
+                    <AppBarButton.Flyout>
+                        <Flyout x:Name="ContentsFlyout">
+                            <ListView x:Name="TocList" SelectionMode="None" IsItemClickEnabled="True" ItemClick="OnTocClick" MaxHeight="480" Width="300">
+                                <ListView.ItemTemplate>
+                                    <DataTemplate x:DataType="local:NavItem">
+                                        <Grid Margin="{x:Bind Indent}">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="{x:Bind Title}" TextWrapping="Wrap" />
+                                            <TextBlock Grid.Column="1" Text="{x:Bind Detail}" Opacity="0.6" Margin="8,0,0,0" />
+                                        </Grid>
+                                    </DataTemplate>
+                                </ListView.ItemTemplate>
+                            </ListView>
+                        </Flyout>
+                    </AppBarButton.Flyout>
+                </AppBarButton>
+            </CommandBar>
+        </StackPanel>
+    </Grid>
+</Page>

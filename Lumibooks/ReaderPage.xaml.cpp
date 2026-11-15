@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "ReaderPage.xaml.h"
 #include "Settings.h"
+#include "Formats.h"
 
 using namespace Lumibooks;
 using namespace concurrency;
@@ -143,7 +144,7 @@ void ReaderPage::OnNavigatedTo(NavigationEventArgs^ e)
     }).then([self](task<IBuffer^> t) -> task<void>
     {
         std::shared_ptr<Epub> e;
-        try { e = Epub::Open(FromBuffer(t.get())); }
+        try { e = OpenReflow(FromBuffer(t.get()), FormatOf(self->book->FilePath->Data())); }
         catch (Exception^) {}
         if (!e)
         {

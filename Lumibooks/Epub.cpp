@@ -212,6 +212,13 @@ Epub::~Epub()
 bool Epub::Read(const std::string& path, std::vector<uint8_t>& out)
 {
     std::lock_guard<std::mutex> g(lock);
+    if (!open)
+    {
+        auto it = files.find(path);
+        if (it == files.end()) return false;
+        out = it->second;
+        return true;
+    }
     int i = mz_zip_reader_locate_file(&zip, path.c_str(), nullptr, 0);
     mz_zip_archive_file_stat st;
     if (i < 0 || !mz_zip_reader_file_stat(&zip, (mz_uint)i, &st) || st.m_uncomp_size > 256u * 1024 * 1024) return false;

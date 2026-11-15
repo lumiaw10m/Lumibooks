@@ -6,7 +6,7 @@
   xmlns:uap3="http://schemas.microsoft.com/appx/manifest/uap/windows10/3"
   IgnorableNamespaces="uap mp uap3">
 
-  <Identity Name="Lumibooks" Publisher="CN=lumiaw10m" Version="1.0.4.0" />
+  <Identity Name="Lumibooks" Publisher="CN=lumiaw10m" Version="1.0.11.0" />
 
   <mp:PhoneIdentity PhoneProductId="ffe8b30d-de06-4cbd-ae40-9a2a32883337" PhonePublisherId="00000000-0000-0000-0000-000000000000" />
 
@@ -45,6 +45,48 @@
             <uap:DisplayName>EPUB book</uap:DisplayName>
             <uap:SupportedFileTypes>
               <uap:FileType ContentType="application/epub+zip">.epub</uap:FileType>
+            </uap:SupportedFileTypes>
+          </uap:FileTypeAssociation>
+        </uap:Extension>
+        <uap:Extension Category="windows.fileTypeAssociation">
+          <uap:FileTypeAssociation Name="fb2">
+            <uap:DisplayName>FictionBook</uap:DisplayName>
+            <uap:SupportedFileTypes>
+              <uap:FileType>.fb2</uap:FileType>
+            </uap:SupportedFileTypes>
+          </uap:FileTypeAssociation>
+        </uap:Extension>
+        <uap:Extension Category="windows.fileTypeAssociation">
+          <uap:FileTypeAssociation Name="mobi">
+            <uap:DisplayName>MOBI book</uap:DisplayName>
+            <uap:SupportedFileTypes>
+              <uap:FileType ContentType="application/x-mobipocket-ebook">.mobi</uap:FileType>
+              <uap:FileType>.prc</uap:FileType>
+            </uap:SupportedFileTypes>
+          </uap:FileTypeAssociation>
+        </uap:Extension>
+        <uap:Extension Category="windows.fileTypeAssociation">
+          <uap:FileTypeAssociation Name="pdf">
+            <uap:DisplayName>PDF document</uap:DisplayName>
+            <uap:SupportedFileTypes>
+              <uap:FileType ContentType="application/pdf">.pdf</uap:FileType>
+            </uap:SupportedFileTypes>
+          </uap:FileTypeAssociation>
+        </uap:Extension>
+        <uap:Extension Category="windows.fileTypeAssociation">
+          <uap:FileTypeAssociation Name="xps">
+            <uap:DisplayName>XPS document</uap:DisplayName>
+            <uap:SupportedFileTypes>
+              <uap:FileType ContentType="application/vnd.ms-xpsdocument">.xps</uap:FileType>
+              <uap:FileType ContentType="application/oxps">.oxps</uap:FileType>
+            </uap:SupportedFileTypes>
+          </uap:FileTypeAssociation>
+        </uap:Extension>
+        <uap:Extension Category="windows.fileTypeAssociation">
+          <uap:FileTypeAssociation Name="cbz">
+            <uap:DisplayName>Comic book</uap:DisplayName>
+            <uap:SupportedFileTypes>
+              <uap:FileType ContentType="application/vnd.comicbook+zip">.cbz</uap:FileType>
             </uap:SupportedFileTypes>
           </uap:FileTypeAssociation>
         </uap:Extension>
