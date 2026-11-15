@@ -2,6 +2,7 @@
 #include "LibraryPage.xaml.h"
 #include "FixedReaderPage.xaml.h"
 #include "NotesPage.xaml.h"
+#include <cmath>
 
 using namespace Lumibooks;
 using namespace concurrency;
@@ -163,6 +164,7 @@ void LibraryPage::RebuildShelves(const std::wstring& select)
     views.clear();
     auto tpl = safe_cast<DataTemplate^>(Resources->Lookup("BookTemplate"));
     auto groupTpl = safe_cast<DataTemplate^>(Resources->Lookup("GroupTemplate"));
+    auto itemStyle = safe_cast<Windows::UI::Xaml::Style^>(Resources->Lookup("BookItem"));
     int index = 0;
     for (size_t i = 0; i <= all.size(); i++)
     {
@@ -178,6 +180,19 @@ void LibraryPage::RebuildShelves(const std::wstring& select)
         grid->SelectionMode = ListViewSelectionMode::None;
         grid->IsItemClickEnabled = true;
         grid->ItemClick += ref new ItemClickEventHandler(this, &LibraryPage::OnItemClick);
+        grid->ItemContainerStyle = itemStyle;
+        grid->Padding = Thickness(6, 0, 6, 8);
+        auto fit = [](GridView^ g, double width)
+        {
+            auto wrap = dynamic_cast<ItemsWrapGrid^>(g->ItemsPanelRoot);
+            if (!wrap || width <= 0) return;
+            int cols = std::max(3, (int)(width / 112));
+            double cell = std::floor(width / cols);
+            wrap->ItemWidth = cell;
+            wrap->ItemHeight = std::floor((cell - 10) * 1.5) + 72;
+        };
+        grid->SizeChanged += ref new SizeChangedEventHandler([fit](Object^ s, SizeChangedEventArgs^ e) { fit(safe_cast<GridView^>(s), e->NewSize.Width - 12); });
+        grid->Loaded += ref new RoutedEventHandler([fit](Object^ s, RoutedEventArgs^) { auto g = safe_cast<GridView^>(s); fit(g, g->ActualWidth - 12); });
         auto style = ref new GroupStyle();
         style->HeaderTemplate = groupTpl;
         grid->GroupStyle->Append(style);
@@ -196,7 +211,7 @@ void LibraryPage::RebuildShelves(const std::wstring& select)
             continueCard->ContentTemplate = safe_cast<DataTemplate^>(Resources->Lookup("ContinueTemplate"));
             continueCard->HorizontalContentAlignment = Windows::UI::Xaml::HorizontalAlignment::Stretch;
             continueCard->HorizontalAlignment = Windows::UI::Xaml::HorizontalAlignment::Stretch;
-            continueCard->Margin = Thickness(4, 4, 0, 0);
+            continueCard->Margin = Thickness(11, 4, 11, 6);
             continueCard->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
             continueCard->Tapped += ref new TappedEventHandler(this, &LibraryPage::OnContinue);
             host->Children->Append(continueCard);
@@ -207,7 +222,7 @@ void LibraryPage::RebuildShelves(const std::wstring& select)
         host->Children->Append(grid);
         auto item = ref new PivotItem();
         item->Header = i == 0 ? ref new String(L"All") : ref new String(all[i - 1].c_str());
-        item->Margin = Thickness(4, 0, 0, 0);
+        item->Margin = Thickness(0);
         item->Content = host;
         Shelves->Items->Append(item);
         views.push_back(v);

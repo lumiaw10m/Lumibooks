@@ -7,9 +7,9 @@
 
     <Page.Resources>
         <DataTemplate x:Key="BookTemplate" x:DataType="local:Book">
-            <Grid Width="104" Height="216" Holding="OnHolding" RightTapped="OnRightTapped">
+            <Grid Margin="5" Holding="OnHolding" RightTapped="OnRightTapped">
                 <Grid.RowDefinitions>
-                    <RowDefinition Height="156" />
+                    <RowDefinition Height="*" />
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
@@ -35,12 +35,18 @@
                 </Grid>
             </Grid>
         </DataTemplate>
+        <Style x:Key="BookItem" TargetType="GridViewItem">
+            <Setter Property="Margin" Value="0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="VerticalContentAlignment" Value="Stretch" />
+        </Style>
         <DataTemplate x:Key="GroupTemplate" x:DataType="local:BookGroup">
             <TextBlock Text="{x:Bind Title}" Style="{StaticResource SubtitleTextBlockStyle}"
                        Foreground="{ThemeResource SystemControlForegroundAccentBrush}" TextTrimming="CharacterEllipsis" />
         </DataTemplate>
         <DataTemplate x:Key="ContinueTemplate" x:DataType="local:Book">
-            <Grid Margin="0,0,12,12" Background="{ThemeResource SystemControlBackgroundBaseLowBrush}">
+            <Grid Background="{ThemeResource SystemControlBackgroundBaseLowBrush}">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="*" />
