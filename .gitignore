@@ -18,3 +18,4 @@ BundleArtifacts/
 *.appxupload
 Lumibooks/out/
 *.log
+*.cer

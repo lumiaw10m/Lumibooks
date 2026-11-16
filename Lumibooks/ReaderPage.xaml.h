@@ -51,6 +51,12 @@ namespace Lumibooks
         std::wstring selText;
         bool loading, resumeSpeech, noteShown;
         long long statKey;
+        std::shared_ptr<std::vector<size_t>> chapterChars;
+        double charsPerPage = 0;
+        int returnChapter = -1;
+        double returnProgress = 0;
+        int PageOf(int chapter, double progress);
+        void OnReturn(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
         int searchToken, lookupToken;
         std::wstring shareText;
         Windows::Foundation::EventRegistrationToken shareToken;

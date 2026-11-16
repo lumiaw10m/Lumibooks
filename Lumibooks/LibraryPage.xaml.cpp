@@ -4,6 +4,7 @@
 #include "NotesPage.xaml.h"
 #include "StatsPage.xaml.h"
 #include <cmath>
+#include "Stats.h"
 
 using namespace Lumibooks;
 using namespace concurrency;
@@ -451,6 +452,39 @@ void LibraryPage::ShowMenu(FrameworkElement^ target)
     });
     shelves->Items->Append(add);
     menu->Items->Append(shelves);
+
+    auto done = ref new MenuFlyoutItem();
+    done->Text = "Mark as read";
+    done->Click += ref new RoutedEventHandler([self, book](Object^, RoutedEventArgs^)
+    {
+        book->Percent = 100;
+        Stats::Finish(book->Id);
+        Library::Save();
+        self->Refresh();
+    });
+    if (book->Percent < 99.5) menu->Items->Append(done);
+
+    auto reset = ref new MenuFlyoutItem();
+    reset->Text = "Reset progress";
+    reset->Click += ref new RoutedEventHandler([self, book](Object^, RoutedEventArgs^)
+    {
+        auto dialog = ref new ContentDialog();
+        dialog->Title = "Reset progress?";
+        dialog->Content = book->Title + L" will start again from the beginning. Bookmarks, highlights and statistics are kept.";
+        dialog->PrimaryButtonText = "Reset";
+        dialog->SecondaryButtonText = "Cancel";
+        create_task(dialog->ShowAsync()).then([self, book](ContentDialogResult r)
+        {
+            if (r != ContentDialogResult::Primary) return;
+            book->ChapterIndex = 0;
+            book->ChapterProgress = 0;
+            book->Percent = 0;
+            book->Opened = 0;
+            Library::Save();
+            self->Refresh();
+        }, task_continuation_context::use_current());
+    });
+    if (book->Percent > 0 || book->ChapterIndex > 0 || book->ChapterProgress > 0) menu->Items->Append(reset);
 
     auto stats = ref new MenuFlyoutItem();
     stats->Text = "Statistics";

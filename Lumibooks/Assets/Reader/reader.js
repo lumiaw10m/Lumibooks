@@ -329,7 +329,20 @@
         send('sel:' + JSON.stringify({ s: sel.s, e: sel.e, t: t.join('').replace(/\s+/g, ' ').trim() }));
     }
 
-    window.lbSelClear = function () { sel = null; drag = null; drawSel(); };
+    function snap() {
+        if (window.pageXOffset || window.pageYOffset) window.scrollTo(0, 0);
+        var b = document.body, d = document.documentElement;
+        if (b && (b.scrollLeft || b.scrollTop)) { b.scrollLeft = 0; b.scrollTop = 0; }
+        if (d && (d.scrollLeft || d.scrollTop)) { d.scrollLeft = 0; d.scrollTop = 0; }
+        if (b && !sliding) {
+            b.style.transition = 'none';
+            b.style.transform = 'translateX(' + (-page * W) + 'px)';
+        }
+    }
+
+    window.lbSnap = function () { snap(); if (sel || found || ov) drawSel(); return ''; };
+
+    window.lbSelClear = function () { sel = null; drag = null; snap(); drawSel(); };
 
     function findQuery(q) {
         var l = nodes(), text = '';
@@ -585,6 +598,8 @@
 
     parseHash();
     window.addEventListener('hashchange', function () { parseHash(); if (ready) layout(); });
+    document.addEventListener('scroll', function () { if (!sliding) snap(); }, true);
+    window.addEventListener('blur', function () { setTimeout(snap, 50); });
     window.addEventListener('resize', function () { clearTimeout(timer); timer = setTimeout(layout, 100); });
     window.addEventListener('load', layout);
     document.addEventListener('DOMContentLoaded', layout);

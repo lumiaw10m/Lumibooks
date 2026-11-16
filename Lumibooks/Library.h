@@ -29,6 +29,7 @@ namespace Lumibooks
             {
                 wchar_t s[16];
                 swprintf_s(s, L"%d%%", (int)(Percent + 0.5));
+                if (Percent >= 99.5) return L"Read";
                 return Percent > 0 ? ref new Platform::String(s) : nullptr;
             }
         }

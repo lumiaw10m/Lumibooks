@@ -252,7 +252,21 @@ void FixedReaderPage::OnEntryClick(Object^ sender, ItemClickEventArgs^ e)
 {
     auto item = dynamic_cast<NavItem^>(e->ClickedItem);
     Panel->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
-    if (item && item->chapter >= 0 && item->chapter < (int)views->Size) Pages->SelectedIndex = item->chapter;
+    if (!item || item->chapter < 0 || item->chapter >= (int)views->Size) return;
+    if (ReturnButton->Visibility != Windows::UI::Xaml::Visibility::Visible && item->chapter != Pages->SelectedIndex)
+    {
+        returnPage = Pages->SelectedIndex;
+        ReturnText->Text = "Back to page " + Num(returnPage + 1);
+        ReturnButton->Visibility = Windows::UI::Xaml::Visibility::Visible;
+    }
+    Pages->SelectedIndex = item->chapter;
+}
+
+void FixedReaderPage::OnReturn(Object^ sender, RoutedEventArgs^ e)
+{
+    ReturnButton->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
+    if (returnPage >= 0 && returnPage < (int)views->Size) Pages->SelectedIndex = returnPage;
+    returnPage = -1;
 }
 
 void FixedReaderPage::ShowDeleteMenu(FrameworkElement^ target)

@@ -50,6 +50,8 @@ namespace Lumibooks
         std::string mark;
         int searchToken = 0;
         int statPage = -1;
+        int returnPage = -1;
+        void OnReturn(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
         std::shared_ptr<bool> searchCancel;
 
         void Show(int page);

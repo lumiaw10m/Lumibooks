@@ -171,6 +171,20 @@ void ReaderPage::OnNavigatedTo(NavigationEventArgs^ e)
         }
         self->epub = e;
         self->resolver = ref new EpubResolver(e);
+        self->chapterChars = nullptr;
+        self->charsPerPage = 0;
+        self->returnChapter = -1;
+        self->ReturnButton->Visibility = Shown(false);
+        create_task([e]
+        {
+            auto sizes = std::make_shared<std::vector<size_t>>();
+            for (auto& path : e->spine)
+            {
+                std::vector<uint8_t> data;
+                sizes->push_back(e->Read(path, data) ? HtmlText(data).size() : 0);
+            }
+            return sizes;
+        }).then([self](std::shared_ptr<std::vector<size_t>> sizes) { self->chapterChars = sizes; }, task_continuation_context::use_current());
         return Library::ReadText("notes/" + self->book->Id + ".json").then([self](String^ json)
         {
             self->notes.Parse(json);
@@ -310,6 +324,11 @@ void ReaderPage::OnScriptNotify(Object^ sender, NotifyEventArgs^ e)
         book->ChapterIndex = chapter;
         book->ChapterProgress = n > 1 ? (double)i / (n - 1) : 0;
         if (epub && !epub->spine.empty()) book->Percent = std::min(100.0, (chapter + (double)(i + 1) / n) * 100.0 / epub->spine.size());
+        if (chapterChars && chapter < (int)chapterChars->size() && n > 1)
+        {
+            double c = (double)(*chapterChars)[chapter] / (n - 0.5);
+            if (c > 100) charsPerPage = c;
+        }
         long long key = (long long)chapter * 100000 + i;
         if (key != statKey)
         {
@@ -598,6 +617,8 @@ void ReaderPage::FillPanel()
         item->kind = 0;
         item->chapter = i;
         item->target = t.fragment.empty() ? ref new String(L"p=0") : Uri::EscapeComponent(Str(Wide(t.fragment.c_str(), t.fragment.size())));
+        int at = PageOf(i, 0);
+        if (at > 0) item->Detail = Fmt(L"%d", at);
         toc->Append(item);
     }
     if (!toc->Size)
@@ -610,6 +631,8 @@ void ReaderPage::FillPanel()
             item->kind = 0;
             item->chapter = i;
             item->target = "p=0";
+            int at = PageOf(i, 0);
+            if (at > 0) item->Detail = Fmt(L"%d", at);
             toc->Append(item);
         }
     }
@@ -664,7 +687,33 @@ void ReaderPage::OnNavItemClick(Object^ sender, ItemClickEventArgs^ e)
 {
     auto item = safe_cast<NavItem^>(e->ClickedItem);
     Panel->Visibility = Shown(false);
+    if (!IsShown(ReturnButton))
+    {
+        returnChapter = chapter;
+        returnProgress = pages > 1 ? (double)page / (pages - 1) : 0;
+        int at = PageOf(chapter, returnProgress);
+        ReturnText->Text = at > 0 ? Fmt(L"Back to page %d", at) : ref new String(L"Back to where you were");
+        ReturnButton->Visibility = Shown(true);
+    }
     Open(item->chapter, item->target);
+}
+
+int ReaderPage::PageOf(int c, double progress)
+{
+    if (!chapterChars || charsPerPage <= 0 || c < 0 || c >= (int)chapterChars->size()) return 0;
+    double before = 0;
+    for (int i = 0; i < c; i++) before += (*chapterChars)[i];
+    before += (*chapterChars)[c] * progress;
+    return (int)(before / charsPerPage) + 1;
+}
+
+void ReaderPage::OnReturn(Object^ sender, RoutedEventArgs^ e)
+{
+    ReturnButton->Visibility = Shown(false);
+    if (returnChapter < 0) return;
+    int c = returnChapter;
+    returnChapter = -1;
+    Open(c, Fmt(L"p=%.4f", returnProgress));
 }
 
 void ReaderPage::ShowDeleteMenu(FrameworkElement^ target)
@@ -899,6 +948,7 @@ void ReaderPage::ShowLookup(String^ title, bool translate)
     LookupBusy->IsActive = true;
     TargetBox->Visibility = Shown(translate);
     Lookup->Visibility = Shown(true);
+    Script("lbSnap", "");
 }
 
 void ReaderPage::OnLookupClose(Object^ sender, RoutedEventArgs^ e)

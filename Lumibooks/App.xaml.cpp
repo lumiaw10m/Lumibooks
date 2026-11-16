@@ -5,8 +5,6 @@
 #include "LibraryPage.xaml.h"
 #include "ReaderPage.xaml.h"
 #include "FixedReaderPage.xaml.h"
-#include "NotesPage.xaml.h"
-#include "StatsPage.xaml.h"
 
 using namespace Lumibooks;
 using namespace concurrency;
@@ -55,17 +53,8 @@ static void ImportAndOpen(Frame^ frame, task<StorageFile^> file)
 
 void App::OnLaunched(LaunchActivatedEventArgs^ e)
 {
-    std::wstring arg = e->Arguments ? e->Arguments->Data() : L"";
-    if (arg.compare(0, 5, L"sort:") == 0) ApplicationData::Current->LocalSettings->Values->Insert("sort", _wtoi(arg.c_str() + 5));
-    auto frame = EnsureFrame();
+    EnsureFrame();
     Window::Current->Activate();
-    if (arg.compare(0, 7, L"import:") == 0)
-    {
-        auto path = ApplicationData::Current->LocalFolder->Path + "\\inbox\\" +ref new String(arg.c_str() + 7);
-        ImportAndOpen(frame, create_task(StorageFile::GetFileFromPathAsync(path)));
-    }
-    else if (arg == L"stats") Library::Load().then([frame] { frame->Navigate(TypeName(StatsPage::typeid)); }, task_continuation_context::use_current());
-    else if (arg == L"notes") Library::Load().then([frame] { frame->Navigate(TypeName(NotesPage::typeid)); }, task_continuation_context::use_current());
 }
 
 void App::OnFileActivated(FileActivatedEventArgs^ e)
