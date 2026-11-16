@@ -1,5 +1,7 @@
 # Lumibooks
 
+![Lumibooks on two Lumia 950s: the library and the reader](docs/hero.webp)
+
 A light, native eBook reader for Windows 10 Mobile, written in C++/CX.
 
 - Targets Windows 10 Mobile 15063 (Lumia 950) and desktop x86
