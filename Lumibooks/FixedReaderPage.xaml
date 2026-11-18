@@ -28,7 +28,7 @@
                                   SizeChanged="OnViewerSizeChanged" ViewChanged="OnViewChanged"
                                   Tapped="OnTapped" DoubleTapped="OnDoubleTapped">
                         <Grid Width="{Binding ViewportWidth, ElementName=Viewer}" Height="{Binding ViewportHeight, ElementName=Viewer}">
-                            <Image Source="{x:Bind Image, Mode=OneWay}" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            <Image Source="{x:Bind Image, Mode=OneWay}" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="2,0" />
                         </Grid>
                     </ScrollViewer>
                 </DataTemplate>

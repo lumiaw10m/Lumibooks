@@ -327,7 +327,7 @@ float FixedReaderPage::FitScale(int page)
     {
         auto b = Window::Current->Bounds;
         float raw = (float)DisplayInformation::GetForCurrentView()->RawPixelsPerViewPixel;
-        vw = (float)b.Width * raw;
+        vw = (float)(b.Width - 4) * raw;
         vh = (float)b.Height * raw;
     }
     return std::min(vw / w, vh / h);
@@ -416,7 +416,7 @@ void FixedReaderPage::OnPageChanged(Object^ sender, SelectionChangedEventArgs^ e
 void FixedReaderPage::OnViewerSizeChanged(Object^ sender, SizeChangedEventArgs^ e)
 {
     float raw = (float)DisplayInformation::GetForCurrentView()->RawPixelsPerViewPixel;
-    float w = (float)e->NewSize.Width * raw, h = (float)e->NewSize.Height * raw;
+    float w = (float)(e->NewSize.Width - 4) * raw, h = (float)e->NewSize.Height * raw;
     if (std::abs(w - fitW) < 1 && std::abs(h - fitH) < 1) return;
     fitW = w;
     fitH = h;
